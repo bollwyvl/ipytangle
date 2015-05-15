@@ -6,7 +6,8 @@ define [
 ], (_, widget, events, IPython) ->
   $win = $ window
 
-  class TangleView extends widget.Widget
+  TangleView: class TangleView extends widget.WidgetView
+
     EVT:
       MD: "rendered.MarkdownCell"
 
@@ -17,7 +18,8 @@ define [
       super
 
     remove: ->
-      events.off EVT.MD, @onMarkdown
+      events.off @EVT.MD, @onMarkdown
+      super
 
     onMarkdown: (evt, {cell})=>
       view = @
@@ -46,7 +48,7 @@ define [
           "border-bottom": "dotted 1px blue"
           "user-select": "none"
           padding: 0
-        .tooltip placement: "bottom", container; "body"
+        .tooltip placement: "bottom", container: "body"
 
       _x = null
 
@@ -58,7 +60,7 @@ define [
         @touch()
 
       startDrag = ({screenX})->
-        _x = _screenX
+        _x = screenX
         $win.on "mousemove", drag
           .on "mouseup", endDrag
 
@@ -67,7 +69,7 @@ define [
         $win.off "mousemove", drag
           .off "mouseup", endDrag
 
-      tngle.on "mousedown", startDrag
+      tngl.on "mousedown", startDrag
 
       @listenTo @model, "change:#{cfg.variable}", =>
         tngl.text tmpl @model.attributes
@@ -75,7 +77,7 @@ define [
       el.replaceWith tngl
 
     hashToConfig: (hash) ->
-      bits = hash[1:].split ":"
+      bits = hash[1..].split ":"
       config = {}
 
       switch bits.length

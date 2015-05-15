@@ -1,0 +1,15 @@
+{
+  "name": "ipytangle",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "coffee": "./node_modules/.bin/coffee -cw -o ipytangle/static/ipytangle/ ipytangle/static/ipytangle/*.coffee"
+  },
+  "author": "",
+  "license": "BSD",
+  "devDependencies": {
+    "coffee-script": "~1.9.2"
+  }
+}
