@@ -1,19 +1,22 @@
 define [
   "underscore"
+  "jquery"
+  "./lib/d3/d3.js"
+  "./lib/rangy/rangy-core.js"
   "widgets/js/widget"
   "base/js/events"
   "base/js/namespace"
-], (_, widget, events, IPython) ->
+], (_, $, d3, rangy, widget, events, IPython) ->
   $win = $ window
 
   TangleView: class TangleView extends widget.WidgetView
-
     EVT:
       MD: "rendered.MarkdownCell"
 
     RE_INTERPOLATE: /\{\{(.+?)\}\}/g
 
     render: ->
+      @templates = {}
       events.on @EVT.MD, @onMarkdown
       super
 
@@ -21,71 +24,114 @@ define [
       events.off @EVT.MD, @onMarkdown
       super
 
-    onMarkdown: (evt, {cell})=>
+    nodeToConfig: (el) ->
+      """
+      implements the ipytangle URL minilanguage
+      - `some_namespace:some_variable`
+      - `:if:some_variable`
+      #:endif
+      #:some_variable
+      """
+      [namespace, expression] = el.attr("href")[1..].split ":"
+
+      template = _.template el.text(), null, interpolate: @RE_INTERPOLATE
+
+      switch expression
+        when "if", "endif"
+          config =
+            type: expression
+            template: template
+        else
+          config =
+            type: "variable"
+            variable: expression
+            template: template
+      config or {}
+
+    withType: (selection, _type, handler) ->
+      selection.filter ({type}) -> type == _type
+        .call handler
+
+    onMarkdown: (evt, {cell}) =>
       view = @
-      cell.element
-        .find "a[href^=#]"
-        .each (idx, el) ->
-          cfg = view.hashToConfig $(el).attr "href"
 
-          if cfg and cfg.variable in view.model.attributes
-            return
+      # transform new elements
+      found = d3.select cell.element[0]
+        .selectAll "a[href^='#']:not(.tangle)"
+        .each ->
+          it = d3.select @
+          it.datum view.nodeToConfig it
+        .classed tangle: 1
 
-          view.bindInput cfg, $ el
+      @withType found, "variable", @initVariable
+      @withType found, "if", @initIf
+      @withType found, "endif", @initEndIf
 
-    bindInput: (cfg, el) =>
+      tangles = d3.select cell.element[0]
+        .selectAll ".tangle"
+
+      @withType found, "variable", @updateVariable
+      @withType found, "if", @updateIf
+      @withType found, "endif", @updateEndIf
+
+    initEndIf: (field) =>
+      field.classed tangle_endif: 1
+
+    updateEndIf: (field) =>
+    updateIf: (field) =>
+
+    initIf: (field) =>
       view = @
-      tmpl = _.template el.text(), null,
-        interpolate: @RE_INTERPOLATE
 
-      tngl = $ "<button/>",
-          title: "drag"
-          class: "btn btn-link tangle"
-        .text tmpl @model.attributes
-        .css
-          cursor: "ew-resize"
-          "text-decoration": "none"
-          "border-bottom": "dotted 1px blue"
-          "user-select": "none"
-          padding: 0
-        .tooltip placement: "bottom", container: "body"
+      field.classed tangle_if: 1
+        .text ""
+        .each ({template}) ->
+          el = d3.select @
+          view.listenTo view.model, "change", ->
+            show = "true" == template view.model.attributes
 
-      _x = null
+            range = rangy.createRange()
+            range.setStart el.node()
+            # TODO: this is really wrong... probably need a stack?
+            range.setEnd d3.select(".tangle_endif").node()
 
-      drag = ({screenX}) =>
-        delta = screenX - _x
-        _x = screenX
-        @model.set cfg.variable,
-          @model.get(cfg.variable) + delta
-        @touch()
+            nodes = d3.selectAll range.getNodes()
 
-      startDrag = ({screenX})->
-        _x = screenX
-        $win.on "mousemove", drag
-          .on "mouseup", endDrag
+            nodes.filter -> @nodeType == 3
+              .each ->
+                $ @
+                  .wrap "<span></span>"
 
-      endDrag = ->
-        _x = null
-        $win.off "mousemove", drag
-          .off "mouseup", endDrag
+            nodes.filter -> @nodeType != 3
+              .classed hide: not show
 
-      tngl.on "mousedown", startDrag
+    updateVariable: (field) =>
+      attributes = @model.attributes
+      field
+        .text ({template}) -> template attributes
 
-      @listenTo @model, "change:#{cfg.variable}", =>
-        tngl.text tmpl @model.attributes
+    initVariable: (field) =>
+      view = @
 
-      el.replaceWith tngl
+      drag = d3.behavior.drag()
+        .on "drag", ({variable}) =>
+          @model.set variable, d3.event.dx + @model.get variable
+          @touch()
 
-    hashToConfig: (hash) ->
-      bits = hash[1..].split ":"
-      config = {}
+      field
+        .classed tangle_variable: 1
+        .attr
+            title: "drag"
+          .style
+            cursor: "ew-resize"
+            "text-decoration": "none"
+            "border-bottom": "dotted 1px blue"
+          .each @tooltip
+          .call drag
+          .each ({variable, template}) ->
+            el = d3.select @
+            view.listenTo view.model, "change:#{variable}", ->
+              el.text template view.model.attributes
 
-      switch bits.length
-        when 2
-          switch bits[0]
-            when ""
-              config.variable = bits[1]
 
-      config
-
-  TangleView: TangleView
+    tooltip: -> $(@).tooltip placement: "bottom", container: "body"

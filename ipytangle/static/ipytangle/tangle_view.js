@@ -2,10 +2,9 @@
 (function() {
   var bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
-    hasProp = {}.hasOwnProperty,
-    indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+    hasProp = {}.hasOwnProperty;
 
-  define(["underscore", "widgets/js/widget", "base/js/events", "base/js/namespace"], function(_, widget, events, IPython) {
+  define(["underscore", "jquery", "./lib/d3/d3.js", "./lib/rangy/rangy-core.js", "widgets/js/widget", "base/js/events", "base/js/namespace"], function(_, $, d3, rangy, widget, events, IPython) {
     var $win, TangleView;
     $win = $(window);
     return {
@@ -13,7 +12,12 @@
         extend(TangleView, superClass);
 
         function TangleView() {
-          this.bindInput = bind(this.bindInput, this);
+          this.initVariable = bind(this.initVariable, this);
+          this.updateVariable = bind(this.updateVariable, this);
+          this.initIf = bind(this.initIf, this);
+          this.updateIf = bind(this.updateIf, this);
+          this.updateEndIf = bind(this.updateEndIf, this);
+          this.initEndIf = bind(this.initEndIf, this);
           this.onMarkdown = bind(this.onMarkdown, this);
           return TangleView.__super__.constructor.apply(this, arguments);
         }
@@ -25,6 +29,7 @@
         TangleView.prototype.RE_INTERPOLATE = /\{\{(.+?)\}\}/g;
 
         TangleView.prototype.render = function() {
+          this.templates = {};
           events.on(this.EVT.MD, this.onMarkdown);
           return TangleView.__super__.render.apply(this, arguments);
         };
@@ -34,87 +39,148 @@
           return TangleView.__super__.remove.apply(this, arguments);
         };
 
+        TangleView.prototype.nodeToConfig = function(el) {
+          "implements the ipytangle URL minilanguage\n- `some_namespace:some_variable`\n- `:if:some_variable`\n#:endif\n#:some_variable";
+          var config, expression, namespace, ref, template;
+          ref = el.attr("href").slice(1).split(":"), namespace = ref[0], expression = ref[1];
+          template = _.template(el.text(), null, {
+            interpolate: this.RE_INTERPOLATE
+          });
+          switch (expression) {
+            case "if":
+            case "endif":
+              config = {
+                type: expression,
+                template: template
+              };
+              break;
+            default:
+              config = {
+                type: "variable",
+                variable: expression,
+                template: template
+              };
+          }
+          return config || {};
+        };
+
+        TangleView.prototype.withType = function(selection, _type, handler) {
+          return selection.filter(function(arg) {
+            var type;
+            type = arg.type;
+            return type === _type;
+          }).call(handler);
+        };
+
         TangleView.prototype.onMarkdown = function(evt, arg) {
-          var cell, view;
+          var cell, found, tangles, view;
           cell = arg.cell;
           view = this;
-          return cell.element.find("a[href^=#]").each(function(idx, el) {
-            var cfg, ref;
-            cfg = view.hashToConfig($(el).attr("href"));
-            if (cfg && (ref = cfg.variable, indexOf.call(view.model.attributes, ref) >= 0)) {
-              return;
-            }
-            return view.bindInput(cfg, $(el));
+          found = d3.select(cell.element[0]).selectAll("a[href^='#']:not(.tangle)").each(function() {
+            var it;
+            it = d3.select(this);
+            return it.datum(view.nodeToConfig(it));
+          }).classed({
+            tangle: 1
+          });
+          this.withType(found, "variable", this.initVariable);
+          this.withType(found, "if", this.initIf);
+          this.withType(found, "endif", this.initEndIf);
+          tangles = d3.select(cell.element[0]).selectAll(".tangle");
+          this.withType(found, "variable", this.updateVariable);
+          this.withType(found, "if", this.updateIf);
+          return this.withType(found, "endif", this.updateEndIf);
+        };
+
+        TangleView.prototype.initEndIf = function(field) {
+          return field.classed({
+            tangle_endif: 1
           });
         };
 
-        TangleView.prototype.bindInput = function(cfg, el) {
-          var _x, drag, endDrag, startDrag, tmpl, tngl, view;
+        TangleView.prototype.updateEndIf = function(field) {};
+
+        TangleView.prototype.updateIf = function(field) {};
+
+        TangleView.prototype.initIf = function(field) {
+          var view;
           view = this;
-          tmpl = _.template(el.text(), null, {
-            interpolate: this.RE_INTERPOLATE
+          return field.classed({
+            tangle_if: 1
+          }).text("").each(function(arg) {
+            var el, template;
+            template = arg.template;
+            el = d3.select(this);
+            return view.listenTo(view.model, "change", function() {
+              var nodes, range, show;
+              show = "true" === template(view.model.attributes);
+              range = rangy.createRange();
+              range.setStart(el.node());
+              range.setEnd(d3.select(".tangle_endif").node());
+              nodes = d3.selectAll(range.getNodes());
+              nodes.filter(function() {
+                return this.nodeType === 3;
+              }).each(function() {
+                return $(this).wrap("<span></span>");
+              });
+              return nodes.filter(function() {
+                return this.nodeType !== 3;
+              }).classed({
+                hide: !show
+              });
+            });
           });
-          tngl = $("<button/>", {
-            title: "drag",
-            "class": "btn btn-link tangle"
-          }).text(tmpl(this.model.attributes)).css({
+        };
+
+        TangleView.prototype.updateVariable = function(field) {
+          var attributes;
+          attributes = this.model.attributes;
+          return field.text(function(arg) {
+            var template;
+            template = arg.template;
+            return template(attributes);
+          });
+        };
+
+        TangleView.prototype.initVariable = function(field) {
+          var drag, view;
+          view = this;
+          drag = d3.behavior.drag().on("drag", (function(_this) {
+            return function(arg) {
+              var variable;
+              variable = arg.variable;
+              _this.model.set(variable, d3.event.dx + _this.model.get(variable));
+              return _this.touch();
+            };
+          })(this));
+          return field.classed({
+            tangle_variable: 1
+          }).attr({
+            title: "drag"
+          }).style({
             cursor: "ew-resize",
             "text-decoration": "none",
-            "border-bottom": "dotted 1px blue",
-            "user-select": "none",
-            padding: 0
-          }).tooltip({
+            "border-bottom": "dotted 1px blue"
+          }).each(this.tooltip).call(drag).each(function(arg) {
+            var el, template, variable;
+            variable = arg.variable, template = arg.template;
+            el = d3.select(this);
+            return view.listenTo(view.model, "change:" + variable, function() {
+              return el.text(template(view.model.attributes));
+            });
+          });
+        };
+
+        TangleView.prototype.tooltip = function() {
+          return $(this).tooltip({
             placement: "bottom",
             container: "body"
           });
-          _x = null;
-          drag = (function(_this) {
-            return function(arg) {
-              var delta, screenX;
-              screenX = arg.screenX;
-              delta = screenX - _x;
-              _x = screenX;
-              _this.model.set(cfg.variable, _this.model.get(cfg.variable) + delta);
-              return _this.touch();
-            };
-          })(this);
-          startDrag = function(arg) {
-            var screenX;
-            screenX = arg.screenX;
-            _x = screenX;
-            return $win.on("mousemove", drag).on("mouseup", endDrag);
-          };
-          endDrag = function() {
-            _x = null;
-            return $win.off("mousemove", drag).off("mouseup", endDrag);
-          };
-          tngl.on("mousedown", startDrag);
-          this.listenTo(this.model, "change:" + cfg.variable, (function(_this) {
-            return function() {
-              return tngl.text(tmpl(_this.model.attributes));
-            };
-          })(this));
-          return el.replaceWith(tngl);
-        };
-
-        TangleView.prototype.hashToConfig = function(hash) {
-          var bits, config;
-          bits = hash.slice(1).split(":");
-          config = {};
-          switch (bits.length) {
-            case 2:
-              switch (bits[0]) {
-                case "":
-                  config.variable = bits[1];
-              }
-          }
-          return config;
         };
 
         return TangleView;
 
-      })(widget.WidgetView),
-      TangleView: TangleView
+      })(widget.WidgetView)
     };
   });
 
