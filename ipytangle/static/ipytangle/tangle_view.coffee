@@ -80,20 +80,44 @@ define [
     updateEndIf: (field) =>
     updateIf: (field) =>
 
+    getStackMatch: (elFor, pushSel, popSel) =>
+      stack = []
+      found = null
+      d3.selectAll ".#{pushSel}, .#{popSel}"
+        .each ->
+          return if found
+          el = d3.select @
+          if el.classed pushSel
+            stack.push @
+            console.log "PUSH", @
+          else
+            popped = stack.pop()
+            console.log "POP", popped
+            if popped == elFor
+              found = @
+
+
+      found
+
     initIf: (field) =>
       view = @
 
       field.classed tangle_if: 1
         .text ""
-        .each ({template}) ->
+        .each (d) ->
           el = d3.select @
           view.listenTo view.model, "change", ->
-            show = "true" == template view.model.attributes
+            show = "true" == d.template view.model.attributes
 
             range = rangy.createRange()
+            # this is easy
             range.setStart el.node()
-            # TODO: this is really wrong... probably need a stack?
-            range.setEnd d3.select(".tangle_endif").node()
+
+            d.end = d.end or view.getStackMatch el.node(),
+              "tangle_if",
+              "tangle_endif"
+
+            range.setEnd d.end
 
             nodes = d3.selectAll range.getNodes()
 
@@ -113,10 +137,12 @@ define [
     initVariable: (field) =>
       view = @
 
+      _touch = _.debounce -> view.touch()
+
       drag = d3.behavior.drag()
-        .on "drag", ({variable}) =>
-          @model.set variable, d3.event.dx + @model.get variable
-          @touch()
+        .on "drag", ({variable}) ->
+          view.model.set variable, d3.event.dx + view.model.get variable
+          _touch()
 
       field
         .classed tangle_variable: 1

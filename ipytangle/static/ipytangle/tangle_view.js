@@ -15,6 +15,7 @@
           this.initVariable = bind(this.initVariable, this);
           this.updateVariable = bind(this.updateVariable, this);
           this.initIf = bind(this.initIf, this);
+          this.getStackMatch = bind(this.getStackMatch, this);
           this.updateIf = bind(this.updateIf, this);
           this.updateEndIf = bind(this.updateEndIf, this);
           this.initEndIf = bind(this.initEndIf, this);
@@ -102,21 +103,45 @@
 
         TangleView.prototype.updateIf = function(field) {};
 
+        TangleView.prototype.getStackMatch = function(elFor, pushSel, popSel) {
+          var found, stack;
+          stack = [];
+          found = null;
+          d3.selectAll("." + pushSel + ", ." + popSel).each(function() {
+            var el, popped;
+            if (found) {
+              return;
+            }
+            el = d3.select(this);
+            if (el.classed(pushSel)) {
+              stack.push(this);
+              return console.log("PUSH", this);
+            } else {
+              popped = stack.pop();
+              console.log("POP", popped);
+              if (popped === elFor) {
+                return found = this;
+              }
+            }
+          });
+          return found;
+        };
+
         TangleView.prototype.initIf = function(field) {
           var view;
           view = this;
           return field.classed({
             tangle_if: 1
-          }).text("").each(function(arg) {
-            var el, template;
-            template = arg.template;
+          }).text("").each(function(d) {
+            var el;
             el = d3.select(this);
             return view.listenTo(view.model, "change", function() {
               var nodes, range, show;
-              show = "true" === template(view.model.attributes);
+              show = "true" === d.template(view.model.attributes);
               range = rangy.createRange();
               range.setStart(el.node());
-              range.setEnd(d3.select(".tangle_endif").node());
+              d.end = d.end || view.getStackMatch(el.node(), "tangle_if", "tangle_endif");
+              range.setEnd(d.end);
               nodes = d3.selectAll(range.getNodes());
               nodes.filter(function() {
                 return this.nodeType === 3;
@@ -143,16 +168,17 @@
         };
 
         TangleView.prototype.initVariable = function(field) {
-          var drag, view;
+          var _touch, drag, view;
           view = this;
-          drag = d3.behavior.drag().on("drag", (function(_this) {
-            return function(arg) {
-              var variable;
-              variable = arg.variable;
-              _this.model.set(variable, d3.event.dx + _this.model.get(variable));
-              return _this.touch();
-            };
-          })(this));
+          _touch = _.debounce(function() {
+            return view.touch();
+          });
+          drag = d3.behavior.drag().on("drag", function(arg) {
+            var variable;
+            variable = arg.variable;
+            view.model.set(variable, d3.event.dx + view.model.get(variable));
+            return _touch();
+          });
           return field.classed({
             tangle_variable: 1
           }).attr({
