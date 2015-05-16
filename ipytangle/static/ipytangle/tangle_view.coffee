@@ -17,6 +17,7 @@ define [
 
     render: ->
       super
+      view = @
       @templates = {}
       @d3 = d3.select @el
         .classed
@@ -27,6 +28,24 @@ define [
 
       @heading = @d3.append "div"
         .classed "panel-heading": 1
+
+      @title = @heading.append "h3"
+        .classed "panel-title": 1
+
+      @title
+        .append "span"
+        .text "Tangle"
+
+      @title.append "button"
+        .classed
+          "pull-right": 1
+          btn: 1
+          "btn-link": 1
+        .on "click", =>
+          @model.set "_expanded", not @model.get "_expanded"
+          @update()
+        .append "i"
+        .classed fa: 1, "fa-fw": 1, "fa-ellipsis-h": 1
 
       @table = @d3.append "table"
         .classed table: 1, "table-hover": 1
@@ -43,6 +62,8 @@ define [
       rows.sort (a, b) -> d3.ascending a.key, b.key
 
       row = @table.data [rows]
+        .classed
+          hide: not @model.get "_expanded"
         .call ->
           init = @enter()
 

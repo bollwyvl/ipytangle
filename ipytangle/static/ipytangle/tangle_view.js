@@ -36,7 +36,9 @@
         TangleView.prototype.RE_INTERPOLATE = /`(.+?)`/g;
 
         TangleView.prototype.render = function() {
+          var view;
           TangleView.__super__.render.apply(this, arguments);
+          view = this;
           this.templates = {};
           this.d3 = d3.select(this.el).classed({
             panel: 1,
@@ -46,6 +48,24 @@
           });
           this.heading = this.d3.append("div").classed({
             "panel-heading": 1
+          });
+          this.title = this.heading.append("h3").classed({
+            "panel-title": 1
+          });
+          this.title.append("span").text("Tangle");
+          this.title.append("button").classed({
+            "pull-right": 1,
+            btn: 1,
+            "btn-link": 1
+          }).on("click", (function(_this) {
+            return function() {
+              _this.model.set("_expanded", !_this.model.get("_expanded"));
+              return _this.update();
+            };
+          })(this)).append("i").classed({
+            fa: 1,
+            "fa-fw": 1,
+            "fa-ellipsis-h": 1
           });
           this.table = this.d3.append("table").classed({
             table: 1,
@@ -65,7 +85,9 @@
           rows.sort(function(a, b) {
             return d3.ascending(a.key, b.key);
           });
-          row = this.table.data([rows]).call(function() {
+          row = this.table.data([rows]).classed({
+            hide: !this.model.get("_expanded")
+          }).call(function() {
             var init;
             return init = this.enter();
           }).select("tbody").selectAll("tr").data(function(data) {
