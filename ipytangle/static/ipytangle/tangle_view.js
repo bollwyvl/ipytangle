@@ -19,6 +19,8 @@
           this.updateIf = bind(this.updateIf, this);
           this.updateEndIf = bind(this.updateEndIf, this);
           this.initEndIf = bind(this.initEndIf, this);
+          this.updateOutput = bind(this.updateOutput, this);
+          this.initOutput = bind(this.initOutput, this);
           this.onMarkdown = bind(this.onMarkdown, this);
           return TangleView.__super__.constructor.apply(this, arguments);
         }
@@ -41,13 +43,19 @@
         };
 
         TangleView.prototype.nodeToConfig = function(el) {
-          "implements the ipytangle URL minilanguage\n- `some_namespace:some_variable`\n- `:if:some_variable`\n#:endif\n#:some_variable";
+          "implements the ipytangle URL minilanguage\n- `:` a pure output view\n- `<undecided_namespace>:some_variable`\n- `:if` and `:endif`";
           var config, expression, namespace, ref, template;
           ref = el.attr("href").slice(1).split(":"), namespace = ref[0], expression = ref[1];
           template = _.template(el.text(), null, {
             interpolate: this.RE_INTERPOLATE
           });
           switch (expression) {
+            case "":
+              config = {
+                type: "output",
+                template: template
+              };
+              break;
             case "if":
             case "endif":
               config = {
@@ -77,26 +85,53 @@
           var cell, found, tangles, view;
           cell = arg.cell;
           view = this;
-          found = d3.select(cell.element[0]).selectAll("a[href^='#']:not(.tangle)").each(function() {
+          found = d3.select(cell.element[0]).selectAll("a[href^='#']:not(.tangle):not(.anchor-link)").each(function() {
             var it;
             it = d3.select(this);
             return it.datum(view.nodeToConfig(it));
           }).classed({
             tangle: 1
           });
+          this.withType(found, "output", this.initOutput);
           this.withType(found, "variable", this.initVariable);
           this.withType(found, "if", this.initIf);
           this.withType(found, "endif", this.initEndIf);
           tangles = d3.select(cell.element[0]).selectAll(".tangle");
-          this.withType(found, "variable", this.updateVariable);
-          this.withType(found, "if", this.updateIf);
-          return this.withType(found, "endif", this.updateEndIf);
+          this.withType(tangles, "output", this.updateOutput);
+          this.withType(tangles, "variable", this.updateVariable);
+          this.withType(tangles, "if", this.updateIf);
+          return this.withType(tangles, "endif", this.updateEndIf);
+        };
+
+        TangleView.prototype.initOutput = function(field) {
+          var view;
+          view = this;
+          return field.classed({
+            tangle_output: 1
+          }).text("").style({
+            "text-decoration": "none",
+            color: "black"
+          }).each(function(d) {
+            var el;
+            el = d3.select(this);
+            return view.listenTo(view.model, "change", function() {
+              return el.text(d.template(view.model.attributes));
+            });
+          });
+        };
+
+        TangleView.prototype.updateOutput = function(field) {
+          return field.text((function(_this) {
+            return function(d) {
+              return d.template(_this.model.attributes);
+            };
+          })(this));
         };
 
         TangleView.prototype.initEndIf = function(field) {
           return field.classed({
             tangle_endif: 1
-          });
+          }).text("");
         };
 
         TangleView.prototype.updateEndIf = function(field) {};
@@ -114,11 +149,9 @@
             }
             el = d3.select(this);
             if (el.classed(pushSel)) {
-              stack.push(this);
-              return console.log("PUSH", this);
+              return stack.push(this);
             } else {
               popped = stack.pop();
-              console.log("POP", popped);
               if (popped === elFor) {
                 return found = this;
               }

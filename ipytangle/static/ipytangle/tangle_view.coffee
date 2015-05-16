@@ -27,16 +27,19 @@ define [
     nodeToConfig: (el) ->
       """
       implements the ipytangle URL minilanguage
-      - `some_namespace:some_variable`
-      - `:if:some_variable`
-      #:endif
-      #:some_variable
+      - `:` a pure output view
+      - `<undecided_namespace>:some_variable`
+      - `:if` and `:endif`
       """
       [namespace, expression] = el.attr("href")[1..].split ":"
 
       template = _.template el.text(), null, interpolate: @RE_INTERPOLATE
 
       switch expression
+        when ""
+          config =
+            type: "output"
+            template: template
         when "if", "endif"
           config =
             type: expression
@@ -57,12 +60,13 @@ define [
 
       # transform new elements
       found = d3.select cell.element[0]
-        .selectAll "a[href^='#']:not(.tangle)"
+        .selectAll "a[href^='#']:not(.tangle):not(.anchor-link)"
         .each ->
           it = d3.select @
           it.datum view.nodeToConfig it
         .classed tangle: 1
 
+      @withType found, "output", @initOutput
       @withType found, "variable", @initVariable
       @withType found, "if", @initIf
       @withType found, "endif", @initEndIf
@@ -70,12 +74,30 @@ define [
       tangles = d3.select cell.element[0]
         .selectAll ".tangle"
 
-      @withType found, "variable", @updateVariable
-      @withType found, "if", @updateIf
-      @withType found, "endif", @updateEndIf
+      @withType tangles, "output", @updateOutput
+      @withType tangles, "variable", @updateVariable
+      @withType tangles, "if", @updateIf
+      @withType tangles, "endif", @updateEndIf
+
+    initOutput: (field) =>
+      view = @
+
+      field.classed tangle_output: 1
+        .text ""
+        .style
+          "text-decoration": "none"
+          color: "black"
+        .each (d) ->
+          el = d3.select @
+          view.listenTo view.model, "change", ->
+            el.text d.template view.model.attributes
+
+    updateOutput: (field) =>
+      field.text (d) => d.template @model.attributes
 
     initEndIf: (field) =>
       field.classed tangle_endif: 1
+        .text ""
 
     updateEndIf: (field) =>
     updateIf: (field) =>
@@ -89,10 +111,8 @@ define [
           el = d3.select @
           if el.classed pushSel
             stack.push @
-            console.log "PUSH", @
           else
             popped = stack.pop()
-            console.log "POP", popped
             if popped == elFor
               found = @
 
