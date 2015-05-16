@@ -13,16 +13,77 @@ define [
     EVT:
       MD: "rendered.MarkdownCell"
 
-    RE_INTERPOLATE: /\{\{(.+?)\}\}/g
+    RE_INTERPOLATE: /`(.+?)`/g
 
     render: ->
-      @templates = {}
-      events.on @EVT.MD, @onMarkdown
       super
+      @templates = {}
+      @d3 = d3.select @el
+        .classed
+          panel: 1
+          "panel-info": 1
+        .style
+          width: "100%"
+
+      @heading = @d3.append "div"
+        .classed "panel-heading": 1
+
+      @table = @d3.append "table"
+        .classed table: 1, "table-hover": 1
+      @table.append "thead"
+      @table.append "tbody"
+
+      events.on @EVT.MD, @onMarkdown
+      @update()
+
+    update: ->
+      super
+      view = @
+      rows = d3.entries @model.attributes
+      rows.sort (a, b) -> d3.ascending a.key, b.key
+
+      row = @table.data [rows]
+        .call ->
+          init = @enter()
+
+        .select "tbody"
+        .selectAll "tr"
+        .data (data) -> data
+        .call ->
+          init = @enter().append "tr"
+          init.append "th"
+          init.append "td"
+            .style
+              width: "100%"
+            .append "input"
+            .classed
+              "form-control": 1
+            .on "input", ({key, value}) ->
+              view.model.set key, d3.select(@).property "value"
+              view.touch()
+
+      row.select "th"
+        .text ({key}) -> key
+
+      row.select "input"
+        .property value: ({value}) -> value
+
+      @
 
     remove: ->
       events.off @EVT.MD, @onMarkdown
       super
+
+    template: (el) =>
+      codes = el.selectAll "code"
+        .each ->
+          src = @textContent
+          d3.select @
+            .datum -> new Function "obj", "with(obj){return (#{src});}"
+
+
+      (attributes) ->
+        codes.text (fn) -> fn attributes
 
     nodeToConfig: (el) ->
       """
@@ -33,7 +94,7 @@ define [
       """
       [namespace, expression] = el.attr("href")[1..].split ":"
 
-      template = _.template el.text(), null, interpolate: @RE_INTERPOLATE
+      template = @template el
 
       switch expression
         when ""
@@ -87,21 +148,19 @@ define [
       view = @
 
       field.classed tangle_output: 1
-        .text ""
         .style
           "text-decoration": "none"
           color: "black"
         .each (d) ->
           el = d3.select @
           view.listenTo view.model, "change", ->
-            el.text d.template view.model.attributes
+            d.template view.model.attributes
 
     updateOutput: (field) =>
-      field.text (d) => d.template @model.attributes
+      field.each (d) => d.template @model.attributes
 
     initEndIf: (field) =>
       field.classed tangle_endif: 1
-        .text ""
 
     updateEndIf: (field) =>
     updateIf: (field) =>
@@ -127,7 +186,6 @@ define [
       view = @
 
       field.classed tangle_if: 1
-        .text ""
         .each (d) ->
           el = d3.select @
           view.listenTo view.model, "change", ->
@@ -156,7 +214,7 @@ define [
     updateVariable: (field) =>
       attributes = @model.attributes
       field
-        .text ({template}) -> template attributes
+        .each ({template}) -> template attributes
 
     initVariable: (field) =>
       view = @
@@ -169,7 +227,7 @@ define [
         .each ({variable, template}) ->
           el = d3.select @
           view.listenTo view.model, "change:#{variable}", ->
-            el.text template view.model.attributes
+            template view.model.attributes
 
       field.filter ({choices, variable}) ->
           not choices and typeof view.model.attributes[variable] == "number"

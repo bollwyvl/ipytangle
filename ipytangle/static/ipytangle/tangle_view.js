@@ -25,6 +25,7 @@
           this.updateOutput = bind(this.updateOutput, this);
           this.initOutput = bind(this.initOutput, this);
           this.onMarkdown = bind(this.onMarkdown, this);
+          this.template = bind(this.template, this);
           return TangleView.__super__.constructor.apply(this, arguments);
         }
 
@@ -32,12 +33,71 @@
           MD: "rendered.MarkdownCell"
         };
 
-        TangleView.prototype.RE_INTERPOLATE = /\{\{(.+?)\}\}/g;
+        TangleView.prototype.RE_INTERPOLATE = /`(.+?)`/g;
 
         TangleView.prototype.render = function() {
+          TangleView.__super__.render.apply(this, arguments);
           this.templates = {};
+          this.d3 = d3.select(this.el).classed({
+            panel: 1,
+            "panel-info": 1
+          }).style({
+            width: "100%"
+          });
+          this.heading = this.d3.append("div").classed({
+            "panel-heading": 1
+          });
+          this.table = this.d3.append("table").classed({
+            table: 1,
+            "table-hover": 1
+          });
+          this.table.append("thead");
+          this.table.append("tbody");
           events.on(this.EVT.MD, this.onMarkdown);
-          return TangleView.__super__.render.apply(this, arguments);
+          return this.update();
+        };
+
+        TangleView.prototype.update = function() {
+          var row, rows, view;
+          TangleView.__super__.update.apply(this, arguments);
+          view = this;
+          rows = d3.entries(this.model.attributes);
+          rows.sort(function(a, b) {
+            return d3.ascending(a.key, b.key);
+          });
+          row = this.table.data([rows]).call(function() {
+            var init;
+            return init = this.enter();
+          }).select("tbody").selectAll("tr").data(function(data) {
+            return data;
+          }).call(function() {
+            var init;
+            init = this.enter().append("tr");
+            init.append("th");
+            return init.append("td").style({
+              width: "100%"
+            }).append("input").classed({
+              "form-control": 1
+            }).on("input", function(arg) {
+              var key, value;
+              key = arg.key, value = arg.value;
+              view.model.set(key, d3.select(this).property("value"));
+              return view.touch();
+            });
+          });
+          row.select("th").text(function(arg) {
+            var key;
+            key = arg.key;
+            return key;
+          });
+          row.select("input").property({
+            value: function(arg) {
+              var value;
+              value = arg.value;
+              return value;
+            }
+          });
+          return this;
         };
 
         TangleView.prototype.remove = function() {
@@ -45,13 +105,27 @@
           return TangleView.__super__.remove.apply(this, arguments);
         };
 
+        TangleView.prototype.template = function(el) {
+          var codes;
+          codes = el.selectAll("code").each(function() {
+            var src;
+            src = this.textContent;
+            return d3.select(this).datum(function() {
+              return new Function("obj", "with(obj){return (" + src + ");}");
+            });
+          });
+          return function(attributes) {
+            return codes.text(function(fn) {
+              return fn(attributes);
+            });
+          };
+        };
+
         TangleView.prototype.nodeToConfig = function(el) {
           "implements the ipytangle URL minilanguage\n- `:` a pure output view\n- `<undecided_namespace>:some_variable`\n- `:if` and `:endif`";
           var config, expression, namespace, ref, template, values;
           ref = el.attr("href").slice(1).split(":"), namespace = ref[0], expression = ref[1];
-          template = _.template(el.text(), null, {
-            interpolate: this.RE_INTERPOLATE
-          });
+          template = this.template(el);
           switch (expression) {
             case "":
               config = {
@@ -119,20 +193,20 @@
           view = this;
           return field.classed({
             tangle_output: 1
-          }).text("").style({
+          }).style({
             "text-decoration": "none",
             color: "black"
           }).each(function(d) {
             var el;
             el = d3.select(this);
             return view.listenTo(view.model, "change", function() {
-              return el.text(d.template(view.model.attributes));
+              return d.template(view.model.attributes);
             });
           });
         };
 
         TangleView.prototype.updateOutput = function(field) {
-          return field.text((function(_this) {
+          return field.each((function(_this) {
             return function(d) {
               return d.template(_this.model.attributes);
             };
@@ -142,7 +216,7 @@
         TangleView.prototype.initEndIf = function(field) {
           return field.classed({
             tangle_endif: 1
-          }).text("");
+          });
         };
 
         TangleView.prototype.updateEndIf = function(field) {};
@@ -176,7 +250,7 @@
           view = this;
           return field.classed({
             tangle_if: 1
-          }).text("").each(function(d) {
+          }).each(function(d) {
             var el;
             el = d3.select(this);
             return view.listenTo(view.model, "change", function() {
@@ -204,7 +278,7 @@
         TangleView.prototype.updateVariable = function(field) {
           var attributes;
           attributes = this.model.attributes;
-          return field.text(function(arg) {
+          return field.each(function(arg) {
             var template;
             template = arg.template;
             return template(attributes);
@@ -224,7 +298,7 @@
             variable = arg.variable, template = arg.template;
             el = d3.select(this);
             return view.listenTo(view.model, "change:" + variable, function() {
-              return el.text(template(view.model.attributes));
+              return template(view.model.attributes);
             });
           });
           field.filter(function(arg) {
