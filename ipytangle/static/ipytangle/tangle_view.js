@@ -2,7 +2,8 @@
 (function() {
   var bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
-    hasProp = {}.hasOwnProperty;
+    hasProp = {}.hasOwnProperty,
+    modulo = function(a, b) { return (+a % (b = +b) + b) % b; };
 
   define(["underscore", "jquery", "./lib/d3/d3.js", "./lib/rangy/rangy-core.js", "widgets/js/widget", "base/js/events", "base/js/namespace"], function(_, $, d3, rangy, widget, events, IPython) {
     var $win, TangleView;
@@ -12,6 +13,8 @@
         extend(TangleView, superClass);
 
         function TangleView() {
+          this.initVariableNumeric = bind(this.initVariableNumeric, this);
+          this.initVariableChoices = bind(this.initVariableChoices, this);
           this.initVariable = bind(this.initVariable, this);
           this.updateVariable = bind(this.updateVariable, this);
           this.initIf = bind(this.initIf, this);
@@ -44,7 +47,7 @@
 
         TangleView.prototype.nodeToConfig = function(el) {
           "implements the ipytangle URL minilanguage\n- `:` a pure output view\n- `<undecided_namespace>:some_variable`\n- `:if` and `:endif`";
-          var config, expression, namespace, ref, template;
+          var config, expression, namespace, ref, template, values;
           ref = el.attr("href").slice(1).split(":"), namespace = ref[0], expression = ref[1];
           template = _.template(el.text(), null, {
             interpolate: this.RE_INTERPOLATE
@@ -69,6 +72,14 @@
                 variable: expression,
                 template: template
               };
+              values = "_" + expression + "_choices";
+              if (values in this.model.attributes) {
+                config.choices = (function(_this) {
+                  return function() {
+                    return _this.model.get(values);
+                  };
+                })(this);
+              }
           }
           return config || {};
         };
@@ -201,26 +212,14 @@
         };
 
         TangleView.prototype.initVariable = function(field) {
-          var _touch, drag, view;
+          var view;
           view = this;
-          _touch = _.debounce(function() {
-            return view.touch();
-          });
-          drag = d3.behavior.drag().on("drag", function(arg) {
-            var variable;
-            variable = arg.variable;
-            view.model.set(variable, d3.event.dx + view.model.get(variable));
-            return _touch();
-          });
-          return field.classed({
+          field.classed({
             tangle_variable: 1
-          }).attr({
-            title: "drag"
           }).style({
-            cursor: "ew-resize",
             "text-decoration": "none",
             "border-bottom": "dotted 1px blue"
-          }).each(this.tooltip).call(drag).each(function(arg) {
+          }).each(function(arg) {
             var el, template, variable;
             variable = arg.variable, template = arg.template;
             el = d3.select(this);
@@ -228,6 +227,54 @@
               return el.text(template(view.model.attributes));
             });
           });
+          field.filter(function(arg) {
+            var choices, variable;
+            choices = arg.choices, variable = arg.variable;
+            return !choices && typeof view.model.attributes[variable] === "number";
+          }).call(this.initVariableNumeric);
+          field.filter(function(arg) {
+            var choices;
+            choices = arg.choices;
+            return choices;
+          }).call(this.initVariableChoices);
+          return field.each(this.tooltip);
+        };
+
+        TangleView.prototype.initVariableChoices = function(field) {
+          return field.attr({
+            title: "click"
+          }).on("click", (function(_this) {
+            return function(d) {
+              var choices, old, old_idx;
+              old = _this.model.get(d.variable);
+              choices = d.choices();
+              old_idx = choices.indexOf(old);
+              _this.model.set(d.variable, choices[modulo(old_idx + 1, choices.length)]);
+              return _this.touch();
+            };
+          })(this));
+        };
+
+        TangleView.prototype.initVariableNumeric = function(field) {
+          var _touch, drag;
+          _touch = _.debounce((function(_this) {
+            return function() {
+              return _this.touch();
+            };
+          })(this));
+          drag = d3.behavior.drag().on("drag", (function(_this) {
+            return function(d) {
+              var old;
+              old = _this.model.get(d.variable);
+              _this.model.set(d.variable, d3.event.dx + old);
+              return _touch();
+            };
+          })(this));
+          return field.attr({
+            title: "drag"
+          }).style({
+            cursor: "ew-resize"
+          }).call(drag);
         };
 
         TangleView.prototype.tooltip = function() {

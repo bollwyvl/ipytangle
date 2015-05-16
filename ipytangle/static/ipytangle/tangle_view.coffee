@@ -49,6 +49,10 @@ define [
             type: "variable"
             variable: expression
             template: template
+
+          values = "_#{expression}_choices"
+          if values of @model.attributes
+            config.choices = => @model.get values
       config or {}
 
     withType: (selection, _type, handler) ->
@@ -157,27 +161,52 @@ define [
     initVariable: (field) =>
       view = @
 
-      _touch = _.debounce -> view.touch()
+      field
+        .classed tangle_variable: 1
+        .style
+          "text-decoration": "none"
+          "border-bottom": "dotted 1px blue"
+        .each ({variable, template}) ->
+          el = d3.select @
+          view.listenTo view.model, "change:#{variable}", ->
+            el.text template view.model.attributes
+
+      field.filter ({choices, variable}) ->
+          not choices and typeof view.model.attributes[variable] == "number"
+        .call @initVariableNumeric
+
+      field.filter ({choices}) -> choices
+        .call @initVariableChoices
+
+      field
+        .each @tooltip
+
+    initVariableChoices: (field) =>
+      field
+        .attr
+          title: "click"
+        .on "click", (d) =>
+          old = @model.get d.variable
+          choices = d.choices()
+          old_idx = choices.indexOf old
+          @model.set d.variable, choices[(old_idx + 1) %% (choices.length)]
+          @touch()
+
+    initVariableNumeric: (field) =>
+      _touch = _.debounce => @touch()
 
       drag = d3.behavior.drag()
-        .on "drag", ({variable}) ->
-          view.model.set variable, d3.event.dx + view.model.get variable
+        .on "drag", (d) =>
+          old = @model.get d.variable
+          @model.set d.variable, d3.event.dx + old
           _touch()
 
       field
-        .classed tangle_variable: 1
         .attr
-            title: "drag"
-          .style
-            cursor: "ew-resize"
-            "text-decoration": "none"
-            "border-bottom": "dotted 1px blue"
-          .each @tooltip
-          .call drag
-          .each ({variable, template}) ->
-            el = d3.select @
-            view.listenTo view.model, "change:#{variable}", ->
-              el.text template view.model.attributes
+          title: "drag"
+        .style
+          cursor: "ew-resize"
+        .call drag
 
 
     tooltip: -> $(@).tooltip placement: "bottom", container: "body"

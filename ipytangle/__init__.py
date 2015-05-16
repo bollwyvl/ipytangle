@@ -1,9 +1,12 @@
+import inspect
+
 from IPython.utils.traitlets import (
     Any,
     CInt,
     CBool,
     CFloat,
     Enum,
+    Tuple,
     link,
 )
 
@@ -22,6 +25,19 @@ class AutoTangle(Tangle):
         for key, widget_traitlet in self._links:
             link((self, key), widget_traitlet)
 
+        for key, fn_subscribed in self._derived.items():
+            self._subscribe(key, fn_subscribed)
+
+    def _subscribe(self, key, fn_subscribed):
+        fn, subscribed = fn_subscribed
+
+        def _handler():
+            handler_kwargs = {sub: getattr(self, sub) for sub in subscribed}
+            setattr(self, key, fn(**handler_kwargs))
+
+        self.on_trait_change(_handler, name=subscribed)
+
+
 
 def tangle(**kwargs):
     """
@@ -39,45 +55,55 @@ def tangle(**kwargs):
     - a `tuple` `(widget_instance, "traitlet")` will create a `link`
     - functions will be `inspect`ed to find their argument names subscribed for
       update... this uses `inspect`, won't work with `*` magic
-      - a lone function will be created as `Any`
-      - a `tuple` `(type, function)` will be created as the type (as above)
+      - a `tuple` `(function, default)` will be created as the type (as
+        above)
     """
 
     class_attrs = {
-        "_links": []
+        "_links": [],
+        "_derived": {}
     }
 
-    types = {
-        (int, CInt),
-        (bool, CBool),
-        (float, CFloat),
-        (list, Enum, lambda x: {"default_value": x[0]})
-    }
+    def get_primitive(value):
+        if isinstance(value, int):
+            return CInt
+        elif isinstance(value, bool):
+            return CBool
+        elif isinstance(value, float):
+            return CFloat
+
 
     for key, value in kwargs.items():
-        traitlet_cls = Any
+        traitlet_cls = get_primitive(value)
         traitlet_args = [value]
         traitlet_kwargs = {
             "sync": True
         }
 
-        if isinstance(value, int):
-            traitlet_cls = CInt
-        elif isinstance(value, bool):
-            traitlet_cls = CBool
-        elif isinstance(value, float):
-            traitlet_cls = CFloat
+        if traitlet_cls is not None:
+            pass
         elif isinstance(value, list):
             traitlet_cls = Enum
             traitlet_kwargs["default_value"] = value[0]
+            class_attrs["_{}_choices".format(key)] = Tuple(value, sync=True)
         elif isinstance(value, tuple):
             if isinstance(value[0], Widget):
                 widget, traitlet = value
                 widget_cls = widget.__class__
-                class_attrs["_links"].append((key, value))
                 traitlet_args = []
                 traitlet_cls = getattr(widget_cls, traitlet).__class__
+                class_attrs["_links"].append((key, value))
+            elif hasattr(value[1], "__call__"):
+                example, fn = value
+                traitlet_args = [example]
+                traitlet_cls = get_primitive(example)
 
+                subscribed = inspect.getargspec(fn).args
+
+                class_attrs["_derived"][key] = (fn, subscribed)
+
+        if traitlet_cls is None:
+            raise ValueError("Didn't understand {}: {}".format(key, value))
         class_attrs[key] = traitlet_cls(*traitlet_args, **traitlet_kwargs)
 
     new_class = type(
