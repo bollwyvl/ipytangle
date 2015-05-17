@@ -1,8 +1,8 @@
 define [
   "underscore"
   "jquery"
-  "./lib/d3/d3.js"
-  "./lib/rangy/rangy-core.js"
+  "../lib/d3/d3.js"
+  "../lib/rangy/rangy-core.js"
   "widgets/js/widget"
   "base/js/events"
   "base/js/namespace"

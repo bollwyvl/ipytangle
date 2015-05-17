@@ -5,7 +5,7 @@
     hasProp = {}.hasOwnProperty,
     modulo = function(a, b) { return (+a % (b = +b) + b) % b; };
 
-  define(["underscore", "jquery", "./lib/d3/d3.js", "./lib/rangy/rangy-core.js", "widgets/js/widget", "base/js/events", "base/js/namespace"], function(_, $, d3, rangy, widget, events, IPython) {
+  define(["underscore", "jquery", "../lib/d3/d3.js", "../lib/rangy/rangy-core.js", "widgets/js/widget", "base/js/events", "base/js/namespace"], function(_, $, d3, rangy, widget, events, IPython) {
     var $win, TangleView;
     $win = $(window);
     return {

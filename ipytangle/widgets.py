@@ -9,9 +9,11 @@ class Tangle(widgets.DOMWidget):
 
     Otherwise, check out `tangle`.
     """
-    _view_name = traitlets.Unicode('TangleView', sync=True)
-    _view_module = traitlets.Unicode('/nbextensions/ipytangle/tangle_view.js',
-                                     sync=True)
+    _view_name = traitlets.Unicode("TangleView", sync=True)
+    _view_module = traitlets.Unicode(
+        "/nbextensions/ipytangle/js/tangle_view.js",
+        sync=True
+    )
 
     # for the future?
-    _tangle_prefix = traitlets.Unicode('', sync=True)
+    _tangle_prefix = traitlets.Unicode("", sync=True)
