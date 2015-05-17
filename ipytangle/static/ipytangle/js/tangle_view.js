@@ -58,6 +58,10 @@
             "pull-right": 1,
             btn: 1,
             "btn-link": 1
+          }).style({
+            "margin-top": 0,
+            "padding": 0,
+            height: "24px"
           }).on("click", (function(_this) {
             return function() {
               _this.model.set("_expanded", !_this.model.get("_expanded"));
@@ -66,7 +70,8 @@
           })(this)).append("i").classed({
             fa: 1,
             "fa-fw": 1,
-            "fa-ellipsis-h": 1
+            "fa-ellipsis-h": 1,
+            "fa-2x": 1
           });
           this.table = this.d3.append("table").classed({
             table: 1,

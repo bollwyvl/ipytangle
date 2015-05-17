@@ -42,11 +42,15 @@ define [
           "pull-right": 1
           btn: 1
           "btn-link": 1
+        .style
+          "margin-top": 0
+          "padding": 0
+          height: "24px"
         .on "click", =>
           @model.set "_expanded", not @model.get "_expanded"
           @update()
         .append "i"
-        .classed fa: 1, "fa-fw": 1, "fa-ellipsis-h": 1
+        .classed fa: 1, "fa-fw": 1, "fa-ellipsis-h": 1, "fa-2x": 1
 
       @table = @d3.append "table"
         .classed table: 1, "table-hover": 1
