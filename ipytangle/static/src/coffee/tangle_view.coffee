@@ -209,8 +209,6 @@ define [
             popped = stack.pop()
             if popped == elFor
               found = @
-
-
       found
 
     initIf: (field) =>
