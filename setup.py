@@ -23,7 +23,7 @@ with open("README.rst") as f:
     )
 
 setup_data.update(
-    cmdclass=cmdclass(setup_data["py_modules"][0])
+    cmdclass=cmdclass(path="{0}/static/{0}".format(setup_data["py_modules"][0]))
 )
 
 setup(**setup_data)
