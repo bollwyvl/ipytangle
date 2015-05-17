@@ -9,8 +9,8 @@ except:
     import pip
     import importlib
 
-    pip.main(['install', 'jupyter-pip'])
-    cmdclass = importlib.import_module('jupyterpip').cmdclass
+    pip.main(["install", "jupyter-pip"])
+    cmdclass = importlib.import_module("jupyterpip").cmdclass
 
 
 with open("setup.json") as f:
@@ -23,7 +23,11 @@ with open("README.rst") as f:
     )
 
 setup_data.update(
-    cmdclass=cmdclass(path="{0}/static/{0}".format(setup_data["py_modules"][0]))
+    cmdclass=cmdclass(
+        path="{0}/static/{0}".format(
+            setup_data["py_modules"][0]
+        )
+    )
 )
 
 setup(**setup_data)
