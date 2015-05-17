@@ -5,6 +5,7 @@ __all__ = ["Tangle"]
 
 _dummy = widgets.DOMWidget()
 
+
 class Tangle(widgets.DOMWidget):
     """
     The base Tangle class: subclass this if you know your way around
@@ -20,8 +21,10 @@ class Tangle(widgets.DOMWidget):
 
     # for the future?
     _tangle_prefix = traitlets.Unicode("", sync=True)
-    _tangle_upstream_traits = traitlets.Tuple(tuple(_dummy.trait_names()),
-                                              sync=True)
+    _tangle_upstream_traits = traitlets.Tuple(
+        tuple(_dummy.trait_names()),
+        sync=True
+    )
 
     def __init__(self, *args, **kwargs):
         super(Tangle, self).__init__(*args, **kwargs)

@@ -18,9 +18,9 @@
           this.initVariableChoices = bind(this.initVariableChoices, this);
           this.initVariable = bind(this.initVariable, this);
           this.updateVariable = bind(this.updateVariable, this);
+          this.updateIf = bind(this.updateIf, this);
           this.initIf = bind(this.initIf, this);
           this.getStackMatch = bind(this.getStackMatch, this);
-          this.updateIf = bind(this.updateIf, this);
           this.updateEndIf = bind(this.updateEndIf, this);
           this.initEndIf = bind(this.initEndIf, this);
           this.updateOutput = bind(this.updateOutput, this);
@@ -236,21 +236,21 @@
           }).style({
             "text-decoration": "none",
             color: "black"
-          }).each(function(d) {
-            var el;
-            el = d3.select(this);
-            return view.listenTo(view.model, "change", function() {
-              return d.template(view.model.attributes);
-            });
           });
         };
 
         TangleView.prototype.updateOutput = function(field) {
+          var view;
+          view = this;
           return field.each((function(_this) {
             return function(d) {
               return d.template(_this.model.attributes);
             };
-          })(this));
+          })(this)).each(function(d) {
+            return view.listenTo(view.model, "change", function() {
+              return d.template(view.model.attributes);
+            });
+          });
         };
 
         TangleView.prototype.initEndIf = function(field) {
@@ -262,8 +262,6 @@
         };
 
         TangleView.prototype.updateEndIf = function(field) {};
-
-        TangleView.prototype.updateIf = function(field) {};
 
         TangleView.prototype.getStackMatch = function(elFor, pushSel, popSel) {
           var found, stack;
@@ -294,7 +292,13 @@
             tangle_if: 1
           }).style({
             display: "none"
-          }).each(function(d) {
+          });
+        };
+
+        TangleView.prototype.updateIf = function(field) {
+          var view;
+          view = this;
+          return field.each(function(d) {
             var el;
             el = d3.select(this);
             return view.listenTo(view.model, "change", function() {
@@ -320,12 +324,19 @@
         };
 
         TangleView.prototype.updateVariable = function(field) {
-          var attributes;
-          attributes = this.model.attributes;
+          var view;
+          view = this;
           return field.each(function(arg) {
             var template;
             template = arg.template;
-            return template(attributes);
+            return template(view.model.attributes);
+          }).each(function(arg) {
+            var el, template, variable;
+            variable = arg.variable, template = arg.template;
+            el = d3.select(this);
+            return view.listenTo(view.model, "change:" + variable, function() {
+              return template(view.model.attributes);
+            });
           });
         };
 
@@ -337,13 +348,6 @@
           }).style({
             "text-decoration": "none",
             "border-bottom": "dotted 1px blue"
-          }).each(function(arg) {
-            var el, template, variable;
-            variable = arg.variable, template = arg.template;
-            el = d3.select(this);
-            return view.listenTo(view.model, "change:" + variable, function() {
-              return template(view.model.attributes);
-            });
           });
           field.filter(function(arg) {
             var choices, variable;

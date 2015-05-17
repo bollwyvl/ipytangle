@@ -50,6 +50,7 @@ def tangle(**kwargs):
     - primitive types (int, bool, float) will be created as casting versions
       (`CInt`, `CBool`, `CFloat`)
     - a `list` will be created as an `Enum`
+    - a `Widget` instance will create a link to that widget's `value`
     - a `tuple` `(widget_instance, "traitlet")` will create a `link`
     - functions will be `inspect`ed to find their argument names subscribed for
       update... this uses `inspect`, won't work with `*` magic
@@ -83,6 +84,11 @@ def tangle(**kwargs):
             traitlet_cls = Enum
             traitlet_kwargs["default_value"] = value[0]
             class_attrs["_{}_choices".format(key)] = Tuple(value, sync=True)
+        elif isinstance(value, Widget):
+            widget_cls = value.__class__
+            traitlet_args = []
+            traitlet_cls = getattr(widget_cls, "value").__class__
+            class_attrs["_links"].append((key, (value, "value")))
         elif isinstance(value, tuple):
             if isinstance(value[0], Widget):
                 widget, traitlet = value

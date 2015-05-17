@@ -181,20 +181,20 @@ define [
         .style
           "text-decoration": "none"
           color: "black"
+
+    updateOutput: (field) =>
+      view = @
+      field.each (d) => d.template @model.attributes
         .each (d) ->
-          el = d3.select @
           view.listenTo view.model, "change", ->
             d.template view.model.attributes
 
-    updateOutput: (field) =>
-      field.each (d) => d.template @model.attributes
 
     initEndIf: (field) =>
       field.classed tangle_endif: 1
         .style display: "none"
 
     updateEndIf: (field) =>
-    updateIf: (field) =>
 
     getStackMatch: (elFor, pushSel, popSel) =>
       stack = []
@@ -216,35 +216,44 @@ define [
 
       field.classed tangle_if: 1
         .style display: "none"
-        .each (d) ->
-          el = d3.select @
-          view.listenTo view.model, "change", ->
-            show = "true" == d.template view.model.attributes
 
-            range = rangy.createRange()
-            # this is easy
-            range.setStart el.node()
+    updateIf: (field) =>
+      view = @
 
-            d.end = d.end or view.getStackMatch el.node(),
-              "tangle_if",
-              "tangle_endif"
+      field.each (d) ->
+        el = d3.select @
+        view.listenTo view.model, "change", ->
+          show = "true" == d.template view.model.attributes
 
-            range.setEnd d.end
+          range = rangy.createRange()
+          # this is easy
+          range.setStart el.node()
 
-            nodes = d3.selectAll range.getNodes()
+          d.end = d.end or view.getStackMatch el.node(),
+            "tangle_if",
+            "tangle_endif"
 
-            nodes.filter -> @nodeType == 3
-              .each ->
-                $ @
-                  .wrap "<span></span>"
+          range.setEnd d.end
 
-            nodes.filter -> @nodeType != 3
-              .classed hide: not show
+          nodes = d3.selectAll range.getNodes()
+
+          nodes.filter -> @nodeType == 3
+            .each ->
+              $ @
+                .wrap "<span></span>"
+
+          nodes.filter -> @nodeType != 3
+            .classed hide: not show
 
     updateVariable: (field) =>
-      attributes = @model.attributes
+      view = @
+
       field
-        .each ({template}) -> template attributes
+        .each ({template}) -> template view.model.attributes
+        .each ({variable, template}) ->
+          el = d3.select @
+          view.listenTo view.model, "change:#{variable}", ->
+            template view.model.attributes
 
     initVariable: (field) =>
       view = @
@@ -254,10 +263,6 @@ define [
         .style
           "text-decoration": "none"
           "border-bottom": "dotted 1px blue"
-        .each ({variable, template}) ->
-          el = d3.select @
-          view.listenTo view.model, "change:#{variable}", ->
-            template view.model.attributes
 
       field.filter ({choices, variable}) ->
           not choices and typeof view.model.attributes[variable] == "number"
