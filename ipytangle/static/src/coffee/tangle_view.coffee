@@ -105,13 +105,12 @@ define [
       events.off @EVT.MD, @onMarkdown
       super
 
-    template: (el) =>
+    template: (el, config) =>
       codes = el.selectAll "code"
         .each ->
           src = @textContent
           d3.select @
             .datum -> new Function "obj", "with(obj){return (#{src});}"
-
 
       (attributes) ->
         codes.text (fn) -> fn attributes
@@ -125,26 +124,26 @@ define [
       """
       [namespace, expression] = el.attr("href")[1..].split ":"
 
-      template = @template el
+      config = {}
 
       switch expression
         when ""
           config =
             type: "output"
-            template: template
         when "if", "endif"
           config =
             type: expression
-            template: template
         else
           config =
             type: "variable"
             variable: expression
-            template: template
 
           values = "_#{expression}_choices"
           if values of @model.attributes
             config.choices = => @model.get values
+
+      config.template = @template el, config
+
       config or {}
 
     withType: (selection, _type, handler) ->
@@ -192,6 +191,7 @@ define [
 
     initEndIf: (field) =>
       field.classed tangle_endif: 1
+        .style display: "none"
 
     updateEndIf: (field) =>
     updateIf: (field) =>
@@ -217,6 +217,7 @@ define [
       view = @
 
       field.classed tangle_if: 1
+        .style display: "none"
         .each (d) ->
           el = d3.select @
           view.listenTo view.model, "change", ->

@@ -147,7 +147,7 @@
           return TangleView.__super__.remove.apply(this, arguments);
         };
 
-        TangleView.prototype.template = function(el) {
+        TangleView.prototype.template = function(el, config) {
           var codes;
           codes = el.selectAll("code").each(function() {
             var src;
@@ -165,28 +165,25 @@
 
         TangleView.prototype.nodeToConfig = function(el) {
           "implements the ipytangle URL minilanguage\n- `:` a pure output view\n- `<undecided_namespace>:some_variable`\n- `:if` and `:endif`";
-          var config, expression, namespace, ref, template, values;
+          var config, expression, namespace, ref, values;
           ref = el.attr("href").slice(1).split(":"), namespace = ref[0], expression = ref[1];
-          template = this.template(el);
+          config = {};
           switch (expression) {
             case "":
               config = {
-                type: "output",
-                template: template
+                type: "output"
               };
               break;
             case "if":
             case "endif":
               config = {
-                type: expression,
-                template: template
+                type: expression
               };
               break;
             default:
               config = {
                 type: "variable",
-                variable: expression,
-                template: template
+                variable: expression
               };
               values = "_" + expression + "_choices";
               if (values in this.model.attributes) {
@@ -197,6 +194,7 @@
                 })(this);
               }
           }
+          config.template = this.template(el, config);
           return config || {};
         };
 
@@ -258,6 +256,8 @@
         TangleView.prototype.initEndIf = function(field) {
           return field.classed({
             tangle_endif: 1
+          }).style({
+            display: "none"
           });
         };
 
@@ -292,6 +292,8 @@
           view = this;
           return field.classed({
             tangle_if: 1
+          }).style({
+            display: "none"
           }).each(function(d) {
             var el;
             el = d3.select(this);
