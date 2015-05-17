@@ -1,7 +1,6 @@
 import inspect
 
 from IPython.utils.traitlets import (
-    Any,
     CInt,
     CBool,
     CFloat,
@@ -38,7 +37,6 @@ class AutoTangle(Tangle):
         self.on_trait_change(_handler, name=subscribed)
 
 
-
 def tangle(**kwargs):
     """
     Shortcut to create a new, custom Tangle model. Use instead of directly
@@ -71,7 +69,6 @@ def tangle(**kwargs):
             return CBool
         elif isinstance(value, float):
             return CFloat
-
 
     for key, value in kwargs.items():
         traitlet_cls = get_primitive(value)
