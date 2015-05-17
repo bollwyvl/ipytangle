@@ -3,9 +3,10 @@
   var bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty,
+    indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     modulo = function(a, b) { return (+a % (b = +b) + b) % b; };
 
-  define(["underscore", "jquery", "../lib/d3/d3.js", "../lib/rangy/rangy-core.js", "widgets/js/widget", "base/js/events", "base/js/namespace"], function(_, $, d3, rangy, widget, events, IPython) {
+  define(["underscore", "jquery", "../lib/d3/d3.js", "backbone", "../lib/rangy/rangy-core.js", "widgets/js/widget", "base/js/events", "base/js/namespace"], function(_, $, d3, Backbone, rangy, widget, events, IPython) {
     var $win, TangleView;
     $win = $(window);
     return {
@@ -90,7 +91,12 @@
           var row, rows, view;
           TangleView.__super__.update.apply(this, arguments);
           view = this;
-          rows = d3.entries(this.model.attributes);
+          rows = d3.entries(this.model.attributes).filter(function(attr) {
+            return attr.key[0] !== "_";
+          }).filter(function(attr) {
+            var ref;
+            return ref = attr.key, indexOf.call(view.model.attributes._tangle_upstream_traits, ref) < 0;
+          });
           rows.sort(function(a, b) {
             return d3.ascending(a.key, b.key);
           });

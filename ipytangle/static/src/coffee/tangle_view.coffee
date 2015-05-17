@@ -2,11 +2,12 @@ define [
   "underscore"
   "jquery"
   "../lib/d3/d3.js"
+  "backbone"
   "../lib/rangy/rangy-core.js"
   "widgets/js/widget"
   "base/js/events"
   "base/js/namespace"
-], (_, $, d3, rangy, widget, events, IPython) ->
+], (_, $, d3, Backbone, rangy, widget, events, IPython) ->
   $win = $ window
 
   TangleView: class TangleView extends widget.WidgetView
@@ -61,6 +62,9 @@ define [
       super
       view = @
       rows = d3.entries @model.attributes
+        .filter (attr) -> attr.key[0] != "_"
+        .filter (attr) ->
+          attr.key not in view.model.attributes._tangle_upstream_traits
       rows.sort (a, b) -> d3.ascending a.key, b.key
 
       row = @table.data [rows]
