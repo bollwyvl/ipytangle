@@ -55,6 +55,8 @@ define [
       events.on @EVT.MD, @onMarkdown
       @update()
 
+      @onMarkdown null, cell: cell for cell in IPython.notebook.get_cells()
+
     update: ->
       super
       view = @

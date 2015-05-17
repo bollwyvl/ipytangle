@@ -1,0 +1,37 @@
+{
+  "author": "Nicholas Bollweg",
+  "author_email": "nick.bollweg@gmail.com",
+  "classifiers": [
+    "Framework :: IPython",
+    "Natural Language :: English",
+    "Programming Language :: Python",
+    "Intended Audience :: Developers",
+    "Development Status :: 3 - Alpha",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 2",
+    "License :: OSI Approved :: BSD License",
+    "Topic :: Software Development :: Widget Sets",
+    "Topic :: Scientific/Engineering :: Human Machine Interfaces",
+    "Topic :: Scientific/Engineering :: Visualization"
+  ],
+  "description": "Tangle reactive documents in the IPython Notebook",
+  "install_requires": [
+    "jupyter-pip"
+  ],
+  "keywords": "IPython tangle",
+  "license": "BSD",
+  "name": "ipytangle",
+  "py_modules": [
+    "ipytangle"
+  ],
+  "setup_requires": [
+    "nose",
+    "IPython",
+    "jsonschema",
+    "pyzmq"
+  ],
+  "test_suite": "nose.collector",
+  "url": "http://github.com/bollwyvl/ipytangle",
+  "version": "0.1.0"
+}

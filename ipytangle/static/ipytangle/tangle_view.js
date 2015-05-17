@@ -36,7 +36,7 @@
         TangleView.prototype.RE_INTERPOLATE = /`(.+?)`/g;
 
         TangleView.prototype.render = function() {
-          var view;
+          var cell, i, len, ref, results, view;
           TangleView.__super__.render.apply(this, arguments);
           view = this;
           this.templates = {};
@@ -74,7 +74,16 @@
           this.table.append("thead");
           this.table.append("tbody");
           events.on(this.EVT.MD, this.onMarkdown);
-          return this.update();
+          this.update();
+          ref = IPython.notebook.get_cells();
+          results = [];
+          for (i = 0, len = ref.length; i < len; i++) {
+            cell = ref[i];
+            results.push(this.onMarkdown(null, {
+              cell: cell
+            }));
+          }
+          return results;
         };
 
         TangleView.prototype.update = function() {
