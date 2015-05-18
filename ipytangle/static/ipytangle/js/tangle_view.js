@@ -10,6 +10,7 @@
     var $win, TangleView;
     $win = $(window);
     d3.select("head").selectAll("#tangle-styles").data([1]).enter().append("link").attr({
+      id: "tangle-styles",
       href: "/nbextensions/ipytangle/css/tangle.css",
       rel: "stylesheet"
     });

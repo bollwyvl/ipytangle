@@ -16,6 +16,7 @@ define [
     .enter()
     .append "link"
     .attr
+      id: "tangle-styles"
       href: "/nbextensions/ipytangle/css/tangle.css"
       rel: "stylesheet"
 
