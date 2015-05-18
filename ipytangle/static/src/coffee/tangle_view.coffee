@@ -28,6 +28,7 @@ define [
 
     render: ->
       super
+      @_modelChange = {}
       view = @
       @templates = {}
       @d3 = d3.select @el
@@ -63,10 +64,10 @@ define [
         .append "i"
         .classed fa: 1, "fa-fw": 1, "fa-ellipsis-h": 1, "fa-2x": 1
 
-      @table = @d3.append "table"
-        .classed table: 1, "table-hover": 1
-      @table.append "thead"
-      @table.append "tbody"
+      @body = @d3.append "div"
+        .classed "panel-body": 1
+        .append "div"
+        .classed row: 1
 
       events.on @EVT.MD, @onMarkdown
       @update()
@@ -77,6 +78,10 @@ define [
       super
       view = @
 
+      now = new Date()
+      changed = @model.changed
+      @_modelChange[key] = now for key of @model.changed
+
       expanded = @model.get "_expanded"
 
       @d3.classed
@@ -86,36 +91,41 @@ define [
         .filter (attr) -> attr.key[0] != "_"
         .filter (attr) ->
           attr.key not in view.model.attributes._tangle_upstream_traits
-      rows.sort (a, b) -> d3.ascending a.key, b.key
+      rows.sort (a, b) =>
+        d3.descending(@_modelChange[a.key], @_modelChange[b.key]) or d3.ascending a.key, b.key
 
-      row = @table.data [rows]
+
+      row = @body.data [rows]
+        .order()
         .classed
           hide: not expanded
-
-        .call ->
-          init = @enter()
-
-        .select "tbody"
-        .selectAll "tr"
+        .selectAll ".variable"
         .data (data) -> data
         .call ->
-          init = @enter().append "tr"
-          init.append "th"
-          init.append "td"
-            .style
-              width: "100%"
-            .append "input"
+          init = @enter().append "div"
+            .classed
+              variable: 1
+          init.append "h6"
+          init.append "input"
             .classed
               "form-control": 1
             .on "input", ({key, value}) ->
               view.model.set key, d3.select(@).property "value"
               view.touch()
 
-      row.select "th"
+      row.select "h6"
         .text ({key}) -> key
 
       row.select "input"
         .property value: ({value}) -> value
+
+      row.filter (d) -> d.key of changed
+        .select "input"
+        .style
+          "background-color": "yellow"
+        .transition()
+        .style
+          "background-color": "white"
 
       @
 

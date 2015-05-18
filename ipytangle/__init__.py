@@ -36,6 +36,14 @@ class AutoTangle(Tangle):
 
         self.on_trait_change(_handler, name=subscribed)
 
+    def _refresh(self):
+        for key, fn_subscribed in self._derived.items():
+            fn, subscribed = fn_subscribed
+            for sub in subscribed:
+                val = getattr(self, sub)
+                self._notify_trait(sub, val, val)
+        return self
+
 
 def tangle(**kwargs):
     """
@@ -115,4 +123,5 @@ def tangle(**kwargs):
         class_attrs
     )
 
-    return new_class()
+    inst = new_class()
+    return inst._refresh()

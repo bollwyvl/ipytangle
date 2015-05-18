@@ -44,6 +44,7 @@
         TangleView.prototype.render = function() {
           var cell, i, len, ref, results, view;
           TangleView.__super__.render.apply(this, arguments);
+          this._modelChange = {};
           view = this;
           this.templates = {};
           this.d3 = d3.select(this.el).classed({
@@ -79,12 +80,11 @@
             "fa-ellipsis-h": 1,
             "fa-2x": 1
           });
-          this.table = this.d3.append("table").classed({
-            table: 1,
-            "table-hover": 1
+          this.body = this.d3.append("div").classed({
+            "panel-body": 1
+          }).append("div").classed({
+            row: 1
           });
-          this.table.append("thead");
-          this.table.append("tbody");
           events.on(this.EVT.MD, this.onMarkdown);
           this.update();
           ref = IPython.notebook.get_cells();
@@ -99,9 +99,14 @@
         };
 
         TangleView.prototype.update = function() {
-          var expanded, row, rows, view;
+          var changed, expanded, key, now, row, rows, view;
           TangleView.__super__.update.apply(this, arguments);
           view = this;
+          now = new Date();
+          changed = this.model.changed;
+          for (key in this.model.changed) {
+            this._modelChange[key] = now;
+          }
           expanded = this.model.get("_expanded");
           this.d3.classed({
             docked: expanded
@@ -112,23 +117,22 @@
             var ref;
             return ref = attr.key, indexOf.call(view.model.attributes._tangle_upstream_traits, ref) < 0;
           });
-          rows.sort(function(a, b) {
-            return d3.ascending(a.key, b.key);
-          });
-          row = this.table.data([rows]).classed({
+          rows.sort((function(_this) {
+            return function(a, b) {
+              return d3.descending(_this._modelChange[a.key], _this._modelChange[b.key]) || d3.ascending(a.key, b.key);
+            };
+          })(this));
+          row = this.body.data([rows]).order().classed({
             hide: !expanded
-          }).call(function() {
-            var init;
-            return init = this.enter();
-          }).select("tbody").selectAll("tr").data(function(data) {
+          }).selectAll(".variable").data(function(data) {
             return data;
           }).call(function() {
             var init;
-            init = this.enter().append("tr");
-            init.append("th");
-            return init.append("td").style({
-              width: "100%"
-            }).append("input").classed({
+            init = this.enter().append("div").classed({
+              variable: 1
+            });
+            init.append("h6");
+            return init.append("input").classed({
               "form-control": 1
             }).on("input", function(arg) {
               var key, value;
@@ -137,7 +141,7 @@
               return view.touch();
             });
           });
-          row.select("th").text(function(arg) {
+          row.select("h6").text(function(arg) {
             var key;
             key = arg.key;
             return key;
@@ -148,6 +152,13 @@
               value = arg.value;
               return value;
             }
+          });
+          row.filter(function(d) {
+            return d.key in changed;
+          }).select("input").style({
+            "background-color": "yellow"
+          }).transition().style({
+            "background-color": "white"
           });
           return this;
         };
