@@ -6,7 +6,7 @@
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     modulo = function(a, b) { return (+a % (b = +b) + b) % b; };
 
-  define(["underscore", "jquery", "../lib/d3/d3.js", "backbone", "../lib/rangy/rangy-core.js", "widgets/js/widget", "base/js/events", "base/js/namespace"], function(_, $, d3, Backbone, rangy, widget, events, IPython) {
+  define(["underscore", "jquery", "backbone", "moment", "../lib/d3/d3.js", "../lib/mathjs/dist/math.min.js", "../lib/numeral/min/numeral.min.js", "../lib/rangy/rangy-core.js", "widgets/js/widget", "base/js/events", "base/js/namespace"], function(_, $, Backbone, moment, d3, math, numeral, rangy, widget, events, IPython) {
     var $win, TangleView;
     $win = $(window);
     d3.select("head").selectAll("#tangle-styles").data([1]).enter().append("link").attr({
@@ -24,6 +24,7 @@
           this.initVariable = bind(this.initVariable, this);
           this.updateVariable = bind(this.updateVariable, this);
           this.updateIf = bind(this.updateIf, this);
+          this.context = bind(this.context, this);
           this.initIf = bind(this.initIf, this);
           this.getStackMatch = bind(this.getStackMatch, this);
           this.updateEndIf = bind(this.updateEndIf, this);
@@ -47,6 +48,20 @@
           this._modelChange = {};
           view = this;
           this.templates = {};
+          this._env = {
+            moment: moment,
+            math: math,
+            numeral: numeral,
+            $: function(x) {
+              return numeral(x).format("$0.0a");
+            },
+            floor: function(x) {
+              return Math.floor(x);
+            },
+            ceil: function(x) {
+              return Math.ceil(x);
+            }
+          };
           this.d3 = d3.select(this.el).classed({
             "widget-tangle": 1,
             panel: 1,
@@ -177,13 +192,45 @@
             var src;
             src = this.textContent;
             return d3.select(this).datum(function() {
-              return new Function("obj", "with(obj){return (" + src + ");}");
+              return {
+                fn: new Function("obj", "with(obj){\n  return (" + src + ");\n}")
+              };
             });
           });
           return function(attributes) {
-            return codes.text(function(fn) {
-              return fn(attributes);
+            var downdated, updated;
+            codes.each(function(d) {
+              d._old = this.textContent;
+              return d._new = "" + (d.fn(attributes));
+            }).text(function(d) {
+              return d._new;
             });
+            updated = codes.filter(function(d) {
+              return d._old < d._new;
+            }).classed({
+              "tangle-updated": 1,
+              "tangle-unupdated": 0,
+              "tangle-downdated": 0
+            });
+            downdated = codes.filter(function(d) {
+              return d._old > d._new;
+            }).classed({
+              "tangle-updated": 0,
+              "tangle-downdated": 1,
+              "tangle-unupdated": 0
+            });
+            return _.delay(function() {
+              updated.classed({
+                "tangle-unupdated": 1,
+                "tangle-downdated": 0,
+                "tangle-updated": 0
+              });
+              return downdated.classed({
+                "tangle-unupdated": 1,
+                "tangle-downdated": 0,
+                "tangle-updated": 0
+              });
+            }, 300);
           };
         };
 
@@ -269,11 +316,13 @@
           view = this;
           return field.each((function(_this) {
             return function(d) {
-              return d.template(_this.model.attributes);
+              return d.template(_this.context());
             };
           })(this)).each(function(d) {
+            var el;
+            el = d3.select(d);
             return view.listenTo(view.model, "change", function() {
-              return d.template(view.model.attributes);
+              return d.template(view.context());
             });
           });
         };
@@ -320,6 +369,12 @@
           });
         };
 
+        TangleView.prototype.context = function() {
+          var context;
+          context = _.extend({}, this._env, this.model.attributes);
+          return context;
+        };
+
         TangleView.prototype.updateIf = function(field) {
           var view;
           view = this;
@@ -328,7 +383,7 @@
             el = d3.select(this);
             change = function() {
               var nodes, range, show;
-              show = "true" === d.template(view.model.attributes);
+              show = "true" === d.template(view.context());
               range = rangy.createRange();
               range.setStart(el.node());
               d.end = d.end || view.getStackMatch(el.node(), "tangle_if", "tangle_endif");
@@ -357,13 +412,13 @@
           return field.each(function(arg) {
             var template;
             template = arg.template;
-            return template(view.model.attributes);
+            return template(view.context());
           }).each(function(arg) {
             var el, template, variable;
             variable = arg.variable, template = arg.template;
             el = d3.select(this);
             return view.listenTo(view.model, "change:" + variable, function() {
-              return template(view.model.attributes);
+              return template(view.context());
             });
           });
         };

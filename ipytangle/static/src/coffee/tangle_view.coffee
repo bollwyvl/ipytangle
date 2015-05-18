@@ -1,13 +1,18 @@
 define [
   "underscore"
   "jquery"
-  "../lib/d3/d3.js"
   "backbone"
+  "moment"
+  "../lib/d3/d3.js"
+  "../lib/mathjs/dist/math.min.js"
+  "../lib/numeral/min/numeral.min.js"
   "../lib/rangy/rangy-core.js"
   "widgets/js/widget"
   "base/js/events"
   "base/js/namespace"
-], (_, $, d3, Backbone, rangy, widget, events, IPython) ->
+], (
+  _, $, Backbone, moment, d3, math, numeral, rangy, widget, events, IPython
+) ->
   $win = $ window
 
   d3.select "head"
@@ -31,6 +36,15 @@ define [
       @_modelChange = {}
       view = @
       @templates = {}
+
+      @_env =
+        moment: moment
+        math: math
+        numeral: numeral
+        $: (x) -> numeral(x).format "$0.0a"
+        floor: (x) -> Math.floor x
+        ceil: (x) -> Math.ceil x
+
       @d3 = d3.select @el
         .classed
           "widget-tangle": 1
@@ -141,10 +155,44 @@ define [
         .each ->
           src = @textContent
           d3.select @
-            .datum -> new Function "obj", "with(obj){return (#{src});}"
+            .datum ->
+              fn: new Function "obj", """
+                  with(obj){
+                    return (#{src});
+                  }
+                """
 
       (attributes) ->
-        codes.text (fn) -> fn attributes
+        codes
+          .each (d) ->
+            d._old = @textContent
+            d._new = "#{d.fn attributes}"
+          .text (d) -> d._new
+
+        updated = codes.filter (d) -> d._old < d._new
+          .classed
+            "tangle-updated": 1
+            "tangle-unupdated": 0
+            "tangle-downdated": 0
+
+
+        downdated = codes.filter (d) -> d._old > d._new
+          .classed
+            "tangle-updated": 0
+            "tangle-downdated": 1
+            "tangle-unupdated": 0
+
+        _.delay ->
+            updated.classed
+              "tangle-unupdated": 1
+              "tangle-downdated": 0
+              "tangle-updated": 0
+            downdated.classed
+              "tangle-unupdated": 1
+              "tangle-downdated": 0
+              "tangle-updated": 0
+          ,
+          300
 
     nodeToConfig: (el) ->
       """
@@ -217,11 +265,11 @@ define [
 
     updateOutput: (field) =>
       view = @
-      field.each (d) => d.template @model.attributes
+      field.each (d) => d.template @context()
         .each (d) ->
+          el = d3.select d
           view.listenTo view.model, "change", ->
-            d.template view.model.attributes
-
+            d.template view.context()
 
     initEndIf: (field) =>
       field.classed tangle_endif: 1
@@ -250,13 +298,21 @@ define [
       field.classed tangle_if: 1
         .style display: "none"
 
+    context: =>
+      context = _.extend {},
+        @_env
+        @model.attributes
+
+      context
+
     updateIf: (field) =>
       view = @
 
       field.each (d) ->
         el = d3.select @
         change = ->
-          show = "true" == d.template view.model.attributes
+          show = "true" == d.template view.context()
+
           range = rangy.createRange()
           # this is easy
           range.setStart el.node()
@@ -286,11 +342,11 @@ define [
       view = @
 
       field
-        .each ({template}) -> template view.model.attributes
+        .each ({template}) -> template view.context()
         .each ({variable, template}) ->
           el = d3.select @
           view.listenTo view.model, "change:#{variable}", ->
-            template view.model.attributes
+            template view.context()
 
     initVariable: (field) =>
       view = @
