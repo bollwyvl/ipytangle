@@ -91,9 +91,12 @@
           results = [];
           for (i = 0, len = ref.length; i < len; i++) {
             cell = ref[i];
-            results.push(this.onMarkdown(null, {
-              cell: cell
-            }));
+            if (cell.cell_type === "markdown" && cell.rendered) {
+              cell.unrender();
+              results.push(cell.execute());
+            } else {
+              results.push(void 0);
+            }
           }
           return results;
         };
@@ -246,7 +249,8 @@
           this.withType(tangles, "output", this.updateOutput);
           this.withType(tangles, "variable", this.updateVariable);
           this.withType(tangles, "if", this.updateIf);
-          return this.withType(tangles, "endif", this.updateEndIf);
+          this.withType(tangles, "endif", this.updateEndIf);
+          return this;
         };
 
         TangleView.prototype.initOutput = function(field) {
@@ -320,9 +324,9 @@
           var view;
           view = this;
           return field.each(function(d) {
-            var el;
+            var change, el;
             el = d3.select(this);
-            return view.listenTo(view.model, "change", function() {
+            change = function() {
               var nodes, range, show;
               show = "true" === d.template(view.model.attributes);
               range = rangy.createRange();
@@ -340,7 +344,10 @@
               }).classed({
                 hide: !show
               });
-            });
+            };
+            view.listenTo(view.model, "change", change);
+            change();
+            return change();
           });
         };
 

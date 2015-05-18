@@ -72,7 +72,10 @@ define [
       events.on @EVT.MD, @onMarkdown
       @update()
 
-      @onMarkdown null, cell: cell for cell in IPython.notebook.get_cells()
+      for cell in IPython.notebook.get_cells()
+        if cell.cell_type == "markdown" and cell.rendered
+          cell.unrender()
+          cell.execute()
 
     update: ->
       super
@@ -202,6 +205,8 @@ define [
       @withType tangles, "if", @updateIf
       @withType tangles, "endif", @updateEndIf
 
+      @
+
     initOutput: (field) =>
       view = @
 
@@ -250,9 +255,8 @@ define [
 
       field.each (d) ->
         el = d3.select @
-        view.listenTo view.model, "change", ->
+        change = ->
           show = "true" == d.template view.model.attributes
-
           range = rangy.createRange()
           # this is easy
           range.setStart el.node()
@@ -272,6 +276,11 @@ define [
 
           nodes.filter -> @nodeType != 3
             .classed hide: not show
+
+        view.listenTo view.model, "change", change
+        # TODOD: fix this
+        change()
+        change()
 
     updateVariable: (field) =>
       view = @
