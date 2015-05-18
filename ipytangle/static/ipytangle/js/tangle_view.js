@@ -26,8 +26,10 @@
           this.updateIf = bind(this.updateIf, this);
           this.context = bind(this.context, this);
           this.initIf = bind(this.initIf, this);
-          this.getStackMatch = bind(this.getStackMatch, this);
+          this.stackMatch = bind(this.stackMatch, this);
+          this.updateElse = bind(this.updateElse, this);
           this.updateEndIf = bind(this.updateEndIf, this);
+          this.initElse = bind(this.initElse, this);
           this.initEndIf = bind(this.initEndIf, this);
           this.updateOutput = bind(this.updateOutput, this);
           this.initOutput = bind(this.initOutput, this);
@@ -39,8 +41,6 @@
         TangleView.prototype.EVT = {
           MD: "rendered.MarkdownCell"
         };
-
-        TangleView.prototype.RE_INTERPOLATE = /`(.+?)`/g;
 
         TangleView.prototype.render = function() {
           var cell, i, len, ref, results, view;
@@ -197,8 +197,13 @@
         };
 
         TangleView.prototype.template = function(el, config) {
-          var _update, codes;
+          var _update, codes, ref, ref1;
           _update = this.tmplUpdateClasses;
+          if ((ref = config.type) === "if") {
+            return _.template("<%= " + (el.select("code").text()) + " %>");
+          } else if ((ref1 = config.type) === "endif" || ref1 === "else") {
+            return function() {};
+          }
           codes = el.selectAll("code").each(function() {
             var src;
             src = this.textContent;
@@ -248,6 +253,8 @@
               break;
             case "if":
             case "endif":
+            case "else":
+            case "elsif":
               config = {
                 type: expression
               };
@@ -293,11 +300,13 @@
           this.withType(found, "variable", this.initVariable);
           this.withType(found, "if", this.initIf);
           this.withType(found, "endif", this.initEndIf);
+          this.withType(found, "else", this.initElse);
           tangles = d3.select(cell.element[0]).selectAll(".tangle");
           this.withType(tangles, "output", this.updateOutput);
           this.withType(tangles, "variable", this.updateVariable);
           this.withType(tangles, "if", this.updateIf);
           this.withType(tangles, "endif", this.updateEndIf);
+          this.withType(tangles, "else", this.updateElse);
           return this;
         };
 
@@ -336,13 +345,27 @@
           });
         };
 
+        TangleView.prototype.initElse = function(field) {
+          return field.classed({
+            tangle_else: 1
+          }).style({
+            display: "none"
+          });
+        };
+
         TangleView.prototype.updateEndIf = function(field) {};
 
-        TangleView.prototype.getStackMatch = function(elFor, pushSel, popSel) {
-          var found, stack;
+        TangleView.prototype.updateElse = function(field) {};
+
+        TangleView.prototype.stackMatch = function(elFor, pushSel, popSels) {
+          var found, sel, stack;
+          if (popSels == null) {
+            popSels = [];
+          }
           stack = [];
           found = null;
-          d3.selectAll("." + pushSel + ", ." + popSel).each(function() {
+          sel = [].concat(["." + pushSel]).concat(popSels).join(", .");
+          d3.selectAll(sel).each(function() {
             var el, popped;
             if (found) {
               return;
@@ -352,12 +375,12 @@
               return stack.push(this);
             } else {
               popped = stack.pop();
-              if (popped === elFor) {
+              if (popped === elFor.node()) {
                 return found = this;
               }
             }
           });
-          return found;
+          return d3.select(found);
         };
 
         TangleView.prototype.initIf = function(field) {
@@ -376,6 +399,28 @@
           return context;
         };
 
+        TangleView.prototype.toggleRange = function(first, last, show) {
+          var nodes, range, rawNodes;
+          range = rangy.createRange();
+          range.setStart(first.node());
+          range.setEnd(last.node());
+          rawNodes = range.getNodes();
+          nodes = d3.selectAll(rawNodes);
+          nodes.filter(function() {
+            return this.nodeType === 3;
+          }).each(function() {
+            var ref;
+            if (ref = this.parentNode, indexOf.call(rawNodes, ref) < 0) {
+              return $(this).wrap("<span></span>");
+            }
+          });
+          return nodes.filter(function() {
+            return this.nodeType !== 3;
+          }).classed({
+            hide: !show
+          });
+        };
+
         TangleView.prototype.updateIf = function(field) {
           var view;
           view = this;
@@ -383,23 +428,14 @@
             var change, el;
             el = d3.select(this);
             change = function() {
-              var nodes, range, show;
+              var show, stackMatch;
+              stackMatch = d.end = d.end || view.stackMatch(el, "tangle_if", ["tangle_endif", "tangle_else"]);
               show = "true" === d.template(view.context());
-              range = rangy.createRange();
-              range.setStart(el.node());
-              d.end = d.end || view.getStackMatch(el.node(), "tangle_if", "tangle_endif");
-              range.setEnd(d.end);
-              nodes = d3.selectAll(range.getNodes());
-              nodes.filter(function() {
-                return this.nodeType === 3;
-              }).each(function() {
-                return $(this).wrap("<span></span>");
-              });
-              return nodes.filter(function() {
-                return this.nodeType !== 3;
-              }).classed({
-                hide: !show
-              });
+              view.toggleRange(el, d.end, show);
+              if (d.end.classed("tangle_else")) {
+                stackMatch = d.final = d.final || view.stackMatch(d.end, "tangle_else", ["tangle_endif"]);
+                return view.toggleRange(d.end, d.final, !show);
+              }
             };
             view.listenTo(view.model, "change", change);
             change();

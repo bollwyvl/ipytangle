@@ -29,8 +29,6 @@ define [
     EVT:
       MD: "rendered.MarkdownCell"
 
-    RE_INTERPOLATE: /`(.+?)`/g
-
     render: ->
       super
       @_modelChange = {}
@@ -158,6 +156,11 @@ define [
     template: (el, config) =>
       _update = @tmplUpdateClasses
 
+      if config.type in ["if"]
+        return _.template "<%= #{el.select("code").text()} %>"
+      else if config.type in ["endif", "else"]
+        return ->
+
       codes = el.selectAll "code"
         .each ->
           src = @textContent
@@ -203,7 +206,7 @@ define [
         when ""
           config =
             type: "output"
-        when "if", "endif"
+        when "if", "endif", "else", "elsif"
           config =
             type: expression
         else
@@ -238,6 +241,7 @@ define [
       @withType found, "variable", @initVariable
       @withType found, "if", @initIf
       @withType found, "endif", @initEndIf
+      @withType found, "else", @initElse
 
       tangles = d3.select cell.element[0]
         .selectAll ".tangle"
@@ -246,6 +250,7 @@ define [
       @withType tangles, "variable", @updateVariable
       @withType tangles, "if", @updateIf
       @withType tangles, "endif", @updateEndIf
+      @withType tangles, "else", @updateElse
 
       @
 
@@ -269,12 +274,18 @@ define [
       field.classed tangle_endif: 1
         .style display: "none"
 
-    updateEndIf: (field) =>
+    initElse: (field) =>
+      field.classed tangle_else: 1
+        .style display: "none"
 
-    getStackMatch: (elFor, pushSel, popSel) =>
+    updateEndIf: (field) =>
+    updateElse: (field) =>
+
+    stackMatch: (elFor, pushSel, popSels=[]) =>
       stack = []
       found = null
-      d3.selectAll ".#{pushSel}, .#{popSel}"
+      sel = [].concat([".#{pushSel}"]).concat(popSels).join ", ."
+      d3.selectAll sel
         .each ->
           return if found
           el = d3.select @
@@ -282,9 +293,9 @@ define [
             stack.push @
           else
             popped = stack.pop()
-            if popped == elFor
+            if popped == elFor.node()
               found = @
-      found
+      d3.select found
 
     initIf: (field) =>
       view = @
@@ -299,33 +310,44 @@ define [
 
       context
 
+    toggleRange: (first, last, show) ->
+      range = rangy.createRange()
+      # this is easy
+      range.setStart first.node()
+      range.setEnd last.node()
+
+      rawNodes = range.getNodes()
+
+      nodes = d3.selectAll rawNodes
+
+      nodes.filter -> @nodeType == 3
+        .each ->
+          if @parentNode not in rawNodes
+            $ @
+              .wrap "<span></span>"
+
+      nodes.filter -> @nodeType != 3
+        .classed hide: not show
+
+
     updateIf: (field) =>
       view = @
 
       field.each (d) ->
         el = d3.select @
         change = ->
-          show = "true" == d.template view.context()
-
-          range = rangy.createRange()
-          # this is easy
-          range.setStart el.node()
-
-          d.end = d.end or view.getStackMatch el.node(),
+          stackMatch = d.end = d.end or view.stackMatch el,
             "tangle_if",
-            "tangle_endif"
+            ["tangle_endif", "tangle_else"]
+          show = "true" == d.template view.context()
+          view.toggleRange el, d.end, show
 
-          range.setEnd d.end
+          if d.end.classed "tangle_else"
+            stackMatch = d.final = d.final or view.stackMatch d.end,
+              "tangle_else",
+              ["tangle_endif"]
 
-          nodes = d3.selectAll range.getNodes()
-
-          nodes.filter -> @nodeType == 3
-            .each ->
-              $ @
-                .wrap "<span></span>"
-
-          nodes.filter -> @nodeType != 3
-            .classed hide: not show
+            view.toggleRange d.end, d.final, not show
 
         view.listenTo view.model, "change", change
         # TODOD: fix this
