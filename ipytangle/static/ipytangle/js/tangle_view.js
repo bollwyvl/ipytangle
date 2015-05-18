@@ -186,8 +186,19 @@
           return TangleView.__super__.remove.apply(this, arguments);
         };
 
+        TangleView.prototype.tmplUpdateClasses = function(arg) {
+          var down, up;
+          up = arg.up, down = arg.down;
+          return {
+            "tangle-unupdated": !(up || down),
+            "tangle-updated": up,
+            "tangle-downdated": down
+          };
+        };
+
         TangleView.prototype.template = function(el, config) {
-          var codes;
+          var _update, codes;
+          _update = this.tmplUpdateClasses;
           codes = el.selectAll("code").each(function() {
             var src;
             src = this.textContent;
@@ -207,30 +218,20 @@
             });
             updated = codes.filter(function(d) {
               return d._old < d._new;
-            }).classed({
-              "tangle-updated": 1,
-              "tangle-unupdated": 0,
-              "tangle-downdated": 0
-            });
+            }).classed(_update({
+              up: 1
+            }));
             downdated = codes.filter(function(d) {
               return d._old > d._new;
-            }).classed({
-              "tangle-updated": 0,
-              "tangle-downdated": 1,
-              "tangle-unupdated": 0
-            });
-            return _.delay(function() {
-              updated.classed({
-                "tangle-unupdated": 1,
-                "tangle-downdated": 0,
-                "tangle-updated": 0
-              });
-              return downdated.classed({
-                "tangle-unupdated": 1,
-                "tangle-downdated": 0,
-                "tangle-updated": 0
-              });
-            }, 300);
+            }).classed(_update({
+              down: 1
+            }));
+            return _.delay((function(_this) {
+              return function() {
+                updated.classed(_update({}));
+                return downdated.classed(_update({}));
+              };
+            })(this), 300);
           };
         };
 

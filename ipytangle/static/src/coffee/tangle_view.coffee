@@ -150,7 +150,14 @@ define [
       events.off @EVT.MD, @onMarkdown
       super
 
+    tmplUpdateClasses: ({up, down}) ->
+      "tangle-unupdated": not (up or down)
+      "tangle-updated": up
+      "tangle-downdated": down
+
     template: (el, config) =>
+      _update = @tmplUpdateClasses
+
       codes = el.selectAll "code"
         .each ->
           src = @textContent
@@ -170,27 +177,14 @@ define [
           .text (d) -> d._new
 
         updated = codes.filter (d) -> d._old < d._new
-          .classed
-            "tangle-updated": 1
-            "tangle-unupdated": 0
-            "tangle-downdated": 0
-
+          .classed _update up: 1
 
         downdated = codes.filter (d) -> d._old > d._new
-          .classed
-            "tangle-updated": 0
-            "tangle-downdated": 1
-            "tangle-unupdated": 0
+          .classed _update down: 1
 
-        _.delay ->
-            updated.classed
-              "tangle-unupdated": 1
-              "tangle-downdated": 0
-              "tangle-updated": 0
-            downdated.classed
-              "tangle-unupdated": 1
-              "tangle-downdated": 0
-              "tangle-updated": 0
+        _.delay =>
+            updated.classed _update {}
+            downdated.classed _update {}
           ,
           300
 
