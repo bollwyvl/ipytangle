@@ -9,6 +9,10 @@
   define(["underscore", "jquery", "../lib/d3/d3.js", "backbone", "../lib/rangy/rangy-core.js", "widgets/js/widget", "base/js/events", "base/js/namespace"], function(_, $, d3, Backbone, rangy, widget, events, IPython) {
     var $win, TangleView;
     $win = $(window);
+    d3.select("head").selectAll("#tangle-styles").data([1]).enter().append("link").attr({
+      href: "/nbextensions/ipytangle/css/tangle.css",
+      rel: "stylesheet"
+    });
     return {
       TangleView: TangleView = (function(superClass) {
         extend(TangleView, superClass);
@@ -42,6 +46,7 @@
           view = this;
           this.templates = {};
           this.d3 = d3.select(this.el).classed({
+            "widget-tangle": 1,
             panel: 1,
             "panel-info": 1
           }).style({
@@ -93,9 +98,13 @@
         };
 
         TangleView.prototype.update = function() {
-          var row, rows, view;
+          var expanded, row, rows, view;
           TangleView.__super__.update.apply(this, arguments);
           view = this;
+          expanded = this.model.get("_expanded");
+          this.d3.classed({
+            docked: expanded
+          });
           rows = d3.entries(this.model.attributes).filter(function(attr) {
             return attr.key[0] !== "_";
           }).filter(function(attr) {
@@ -106,7 +115,7 @@
             return d3.ascending(a.key, b.key);
           });
           row = this.table.data([rows]).classed({
-            hide: !this.model.get("_expanded")
+            hide: !expanded
           }).call(function() {
             var init;
             return init = this.enter();

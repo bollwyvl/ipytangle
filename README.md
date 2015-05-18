@@ -36,7 +36,7 @@ And interacting with the links would cuase the result to update.
 ## Features
 
 - Implements [TangleKit](https://github.com/worrydream/Tangle/blob/master/TangleKit/TangleKit.js) baseline as markdown links
-  - read-only just displays a number
+  - read-only just displays a field
     ```markdown
     For [`years` years](#:) have I trained Jedi. 
     ```

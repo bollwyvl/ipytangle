@@ -5,11 +5,15 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "coffee": "./node_modules/.bin/coffee -cw -o ipytangle/static/ipytangle/js/ ipytangle/static/src/coffee/*.coffee"
+    "coffee": "./node_modules/.bin/coffee -cw -o ipytangle/static/ipytangle/js/ ipytangle/static/src/coffee/*.coffee",
+    "less": "./node_modules/.bin/lessc ipytangle/static/src/less/tangle.less ipytangle/static/ipytangle/css/tangle.css ",
+    "watch-less": "./node_modules/.bin/watch 'npm run less' ipytangle/static/src/less"
   },
   "author": "",
   "license": "BSD",
   "devDependencies": {
-    "coffee-script": "~1.9.2"
+    "coffee-script": "~1.9.2",
+    "less": "~2.5.0",
+    "watch": "~0.16.0"
   }
 }

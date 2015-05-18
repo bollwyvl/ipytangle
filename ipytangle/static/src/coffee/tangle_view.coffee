@@ -10,6 +10,15 @@ define [
 ], (_, $, d3, Backbone, rangy, widget, events, IPython) ->
   $win = $ window
 
+  d3.select "head"
+    .selectAll "#tangle-styles"
+    .data [1]
+    .enter()
+    .append "link"
+    .attr
+      href: "/nbextensions/ipytangle/css/tangle.css"
+      rel: "stylesheet"
+
   TangleView: class TangleView extends widget.WidgetView
     EVT:
       MD: "rendered.MarkdownCell"
@@ -22,6 +31,7 @@ define [
       @templates = {}
       @d3 = d3.select @el
         .classed
+          "widget-tangle": 1
           panel: 1
           "panel-info": 1
         .style
@@ -65,6 +75,12 @@ define [
     update: ->
       super
       view = @
+
+      expanded = @model.get "_expanded"
+
+      @d3.classed
+        docked: expanded
+
       rows = d3.entries @model.attributes
         .filter (attr) -> attr.key[0] != "_"
         .filter (attr) ->
@@ -73,7 +89,8 @@ define [
 
       row = @table.data [rows]
         .classed
-          hide: not @model.get "_expanded"
+          hide: not expanded
+
         .call ->
           init = @enter()
 
