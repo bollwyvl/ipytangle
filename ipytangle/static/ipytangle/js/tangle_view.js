@@ -25,12 +25,7 @@
           this.updateVariable = bind(this.updateVariable, this);
           this.updateIf = bind(this.updateIf, this);
           this.context = bind(this.context, this);
-          this.initIf = bind(this.initIf, this);
           this.stackMatch = bind(this.stackMatch, this);
-          this.updateElse = bind(this.updateElse, this);
-          this.updateEndIf = bind(this.updateEndIf, this);
-          this.initElse = bind(this.initElse, this);
-          this.initEndIf = bind(this.initEndIf, this);
           this.updateOutput = bind(this.updateOutput, this);
           this.initOutput = bind(this.initOutput, this);
           this.onMarkdown = bind(this.onMarkdown, this);
@@ -199,7 +194,7 @@
         TangleView.prototype.template = function(el, config) {
           var _update, codes, ref, ref1;
           _update = this.tmplUpdateClasses;
-          if ((ref = config.type) === "if") {
+          if ((ref = config.type) === "if" || ref === "elsif") {
             return _.template("<%= " + (el.select("code").text()) + " %>");
           } else if ((ref1 = config.type) === "endif" || ref1 === "else") {
             return function() {};
@@ -298,15 +293,14 @@
           });
           this.withType(found, "output", this.initOutput);
           this.withType(found, "variable", this.initVariable);
-          this.withType(found, "if", this.initIf);
-          this.withType(found, "endif", this.initEndIf);
-          this.withType(found, "else", this.initElse);
+          this.withType(found, "if", this.initClassed("tangle_if"));
+          this.withType(found, "else", this.initClassed("tangle_else"));
+          this.withType(found, "elsif", this.initClassed("tangle_elsif"));
+          this.withType(found, "endif", this.initClassed("tangle_endif"));
           tangles = d3.select(cell.element[0]).selectAll(".tangle");
           this.withType(tangles, "output", this.updateOutput);
           this.withType(tangles, "variable", this.updateVariable);
           this.withType(tangles, "if", this.updateIf);
-          this.withType(tangles, "endif", this.updateEndIf);
-          this.withType(tangles, "else", this.updateElse);
           return this;
         };
 
@@ -337,60 +331,52 @@
           });
         };
 
-        TangleView.prototype.initEndIf = function(field) {
-          return field.classed({
-            tangle_endif: 1
-          }).style({
-            display: "none"
-          });
+        TangleView.prototype.initClassed = function(cls) {
+          return function(field) {
+            return field.classed(cls, 1).style({
+              display: "none"
+            });
+          };
         };
 
-        TangleView.prototype.initElse = function(field) {
-          return field.classed({
-            tangle_else: 1
-          }).style({
-            display: "none"
-          });
-        };
-
-        TangleView.prototype.updateEndIf = function(field) {};
-
-        TangleView.prototype.updateElse = function(field) {};
-
-        TangleView.prototype.stackMatch = function(elFor, pushSel, popSels) {
+        TangleView.prototype.stackMatch = function(elFor, pushers, poppers) {
+          "Given a grammar of stack poppers and pushers\n\nif +\nelse -+\nelsif -+\nendif -\n\nand the current element, determine the next element";
           var found, sel, stack;
-          if (popSels == null) {
-            popSels = [];
-          }
           stack = [];
           found = null;
-          sel = [].concat(["." + pushSel]).concat(popSels).join(", .");
+          sel = [].concat(pushers).concat(poppers).map(function(sel) {
+            return "." + sel;
+          }).join(", ");
           d3.selectAll(sel).each(function() {
-            var el, popped;
+            var el, i, j, len, len1, popped, popper, pusher, results;
             if (found) {
               return;
             }
             el = d3.select(this);
-            if (el.classed(pushSel)) {
-              return stack.push(this);
-            } else {
-              popped = stack.pop();
-              if (popped === elFor.node()) {
-                return found = this;
+            for (i = 0, len = poppers.length; i < len; i++) {
+              popper = poppers[i];
+              if (found) {
+                continue;
+              }
+              if (el.classed(popper)) {
+                popped = stack.pop();
+                if (popped === elFor.node()) {
+                  found = this;
+                }
               }
             }
+            results = [];
+            for (j = 0, len1 = pushers.length; j < len1; j++) {
+              pusher = pushers[j];
+              if (el.classed(pusher)) {
+                results.push(stack.push(this));
+              } else {
+                results.push(void 0);
+              }
+            }
+            return results;
           });
           return d3.select(found);
-        };
-
-        TangleView.prototype.initIf = function(field) {
-          var view;
-          view = this;
-          return field.classed({
-            tangle_if: 1
-          }).style({
-            display: "none"
-          });
         };
 
         TangleView.prototype.context = function() {
@@ -428,14 +414,26 @@
             var change, el;
             el = d3.select(this);
             change = function() {
-              var show, stackMatch;
-              stackMatch = d.end = d.end || view.stackMatch(el, "tangle_if", ["tangle_endif", "tangle_else"]);
-              show = "true" === d.template(view.context());
-              view.toggleRange(el, d.end, show);
-              if (d.end.classed("tangle_else")) {
-                stackMatch = d.final = d.final || view.stackMatch(d.end, "tangle_else", ["tangle_endif"]);
-                return view.toggleRange(d.end, d.final, !show);
+              var current, poppers, prev, pushers, results, show;
+              pushers = ["tangle_if", "tangle_else", "tangle_elsif"];
+              poppers = ["tangle_endif", "tangle_else", "tangle_elsif"];
+              current = el;
+              show = false;
+              results = [];
+              while (!current.classed("tangle_endif")) {
+                if (current === el) {
+                  show = "true" === d.template(view.context());
+                } else if (current.classed("tangle_else")) {
+                  show = !show;
+                }
+                prev = current;
+                current = view.stackMatch(prev, pushers, poppers);
+                if (current.classed("tangle_endif")) {
+                  break;
+                }
+                results.push(view.toggleRange(prev, current, show));
               }
+              return results;
             };
             view.listenTo(view.model, "change", change);
             change();

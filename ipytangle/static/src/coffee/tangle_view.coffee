@@ -156,7 +156,7 @@ define [
     template: (el, config) =>
       _update = @tmplUpdateClasses
 
-      if config.type in ["if"]
+      if config.type in ["if", "elsif"]
         return _.template "<%= #{el.select("code").text()} %>"
       else if config.type in ["endif", "else"]
         return ->
@@ -239,9 +239,10 @@ define [
 
       @withType found, "output", @initOutput
       @withType found, "variable", @initVariable
-      @withType found, "if", @initIf
-      @withType found, "endif", @initEndIf
-      @withType found, "else", @initElse
+      @withType found, "if", @initClassed "tangle_if"
+      @withType found, "else", @initClassed "tangle_else"
+      @withType found, "elsif", @initClassed "tangle_elsif"
+      @withType found, "endif", @initClassed "tangle_endif"
 
       tangles = d3.select cell.element[0]
         .selectAll ".tangle"
@@ -249,8 +250,6 @@ define [
       @withType tangles, "output", @updateOutput
       @withType tangles, "variable", @updateVariable
       @withType tangles, "if", @updateIf
-      @withType tangles, "endif", @updateEndIf
-      @withType tangles, "else", @updateElse
 
       @
 
@@ -270,38 +269,49 @@ define [
           view.listenTo view.model, "change", ->
             d.template view.context()
 
-    initEndIf: (field) =>
-      field.classed tangle_endif: 1
-        .style display: "none"
+    initClassed: (cls) ->
+      (field) ->
+        field.classed cls, 1
+          .style display: "none"
 
-    initElse: (field) =>
-      field.classed tangle_else: 1
-        .style display: "none"
+    stackMatch: (elFor, pushers, poppers) =>
+      """
+      Given a grammar of stack poppers and pushers
 
-    updateEndIf: (field) =>
-    updateElse: (field) =>
+      if +
+      else -+
+      elsif -+
+      endif -
 
-    stackMatch: (elFor, pushSel, popSels=[]) =>
+      and the current element, determine the next element
+      """
       stack = []
       found = null
-      sel = [].concat([".#{pushSel}"]).concat(popSels).join ", ."
+
+      sel = []
+        .concat pushers
+        .concat poppers
+        .map (sel) -> ".#{sel}"
+        .join ", "
+
       d3.selectAll sel
         .each ->
           return if found
           el = d3.select @
-          if el.classed pushSel
-            stack.push @
-          else
-            popped = stack.pop()
-            if popped == elFor.node()
-              found = @
+
+          for popper in poppers
+            continue if found
+            if el.classed popper
+              popped = stack.pop()
+
+              if popped == elFor.node()
+                found = @
+
+          for pusher in pushers
+            if el.classed pusher
+              stack.push @
+
       d3.select found
-
-    initIf: (field) =>
-      view = @
-
-      field.classed tangle_if: 1
-        .style display: "none"
 
     context: =>
       context = _.extend {},
@@ -336,18 +346,25 @@ define [
       field.each (d) ->
         el = d3.select @
         change = ->
-          stackMatch = d.end = d.end or view.stackMatch el,
-            "tangle_if",
-            ["tangle_endif", "tangle_else"]
-          show = "true" == d.template view.context()
-          view.toggleRange el, d.end, show
+          pushers = ["tangle_if", "tangle_else", "tangle_elsif"]
+          poppers = ["tangle_endif", "tangle_else", "tangle_elsif"]
+          current = el
+          show = false
 
-          if d.end.classed "tangle_else"
-            stackMatch = d.final = d.final or view.stackMatch d.end,
-              "tangle_else",
-              ["tangle_endif"]
+          while not current.classed "tangle_endif"
+            if current == el
+              show = "true" == d.template view.context()
+            else if current.classed "tangle_else"
+              show = not show
 
-            view.toggleRange d.end, d.final, not show
+            prev = current
+            current = view.stackMatch prev, pushers, poppers
+
+            if current.classed "tangle_endif"
+              break
+
+            view.toggleRange prev, current, show
+
 
         view.listenTo view.model, "change", change
         # TODOD: fix this
