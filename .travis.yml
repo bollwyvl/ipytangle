@@ -8,4 +8,4 @@ install:
   - python setup.py develop
 script:
   - python -m flake8 *.py ipytangle/*.py tests/*.py
-  - python setup.py test
+  - PYTHONWARNINGS=0 python setup.py test
