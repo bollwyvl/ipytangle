@@ -32,7 +32,7 @@ class JSController(iptestcontroller.JSController):
             '--engine=%s' % self.engine
         ]
 
-        self.cmd = ['casperjs', 'test'] + extras + tests
+        self.cmd = ['./node_modules/.bin/casperjs', 'test'] + extras + tests
 
 
 def test_notebook():

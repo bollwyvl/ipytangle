@@ -1,21 +1,29 @@
 {
-  "name": "ipytangle",
-  "version": "0.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "coffee": "./node_modules/.bin/coffee -cw -o ipytangle/static/ipytangle/js/ ipytangle/static/src/coffee/*.coffee",
-    "less": "./node_modules/.bin/lessc ipytangle/static/src/less/tangle.less ipytangle/static/ipytangle/css/tangle.css ",
-    "watch-less": "./node_modules/.bin/watch 'npm run less' ipytangle/static/src/less"
+  "author": {
+    "name": "Nicholas Bollweg",
+    "url": "https://github.com/bollwyvl"
   },
-  "author": "",
-  "license": "BSD",
+  "description": "",
   "devDependencies": {
+    "bower": "~1.4.1",
     "coffee-script": "~1.9.2",
     "less": "~2.5.0",
+    "phantomjs": "~1.9.16",
     "watch": "~0.16.0",
-    "bower": "~1.4.1",
-    "phantomjs": "~1.9.16"
-  }
+    "casperjs": "~1.1.0-beta3"
+  },
+  "license": "BSD",
+  "main": "index.js",
+  "name": "ipytangle",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bollwyvl/ipytangle.git"
+  },
+  "scripts": {
+    "coffee": "./node_modules/.bin/coffee -cw -o ipytangle/static/ipytangle/js/ ipytangle/static/src/coffee/*.coffee",
+    "less": "./node_modules/.bin/lessc ipytangle/static/src/less/tangle.less ipytangle/static/ipytangle/css/tangle.css ",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "watch-less": "./node_modules/.bin/watch 'npm run less' ipytangle/static/src/less"
+  },
+  "version": "0.0.0"
 }
