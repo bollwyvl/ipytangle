@@ -2,6 +2,8 @@
 IPyTangle
 =========
 
+|build status|
+
 Reactive narratives inspired by
 `Tangle <http://worrydream.com/Tangle/>`__ in the `Jupyter
 Notebook <http://jupyter.org>`__.
@@ -9,7 +11,7 @@ Notebook <http://jupyter.org>`__.
 IPyTangle makes plain markdown into an interactive part of your
 data-driven narrative.
 
-This python:
+This python...
 
 .. code:: python
 
@@ -31,6 +33,9 @@ Would give you something like this:
 And interacting with the links would cause the result to update.
 
 See `the examples <./examples>`__!
+
+.. |build status| image:: https://travis-ci.org/bollwyvl/ipytangle.svg
+   :target: https://travis-ci.org/bollwyvl/ipytangle
 
 Screenshot
 ----------

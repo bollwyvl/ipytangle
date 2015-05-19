@@ -1,10 +1,13 @@
 
-# IPyTangle
+# IPyTangle 
+
+[![build status](https://travis-ci.org/bollwyvl/ipytangle.svg)](https://travis-ci.org/bollwyvl/ipytangle)
+
 Reactive narratives inspired by [Tangle](http://worrydream.com/Tangle/) in the [Jupyter Notebook](http://jupyter.org).
 
 IPyTangle makes plain markdown into an interactive part of your data-driven narrative.
 
-This python:
+This python...
 
 ```python
 from ipytangle import tangle
