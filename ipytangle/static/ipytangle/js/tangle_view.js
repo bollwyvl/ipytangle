@@ -414,24 +414,25 @@
             var change, el;
             el = d3.select(this);
             change = function() {
-              var current, poppers, prev, pushers, results, show;
+              var current, poppers, prev, pushers, results, show, shown;
               pushers = ["tangle_if", "tangle_else", "tangle_elsif"];
               poppers = ["tangle_endif", "tangle_else", "tangle_elsif"];
               current = el;
+              shown = false;
               show = false;
               results = [];
               while (!current.classed("tangle_endif")) {
                 if (current === el) {
                   show = "true" === d.template(view.context());
+                } else if (current.classed("tangle_elsif")) {
+                  show = "true" === current.datum().template(view.context());
                 } else if (current.classed("tangle_else")) {
-                  show = !show;
+                  show = !shown;
                 }
                 prev = current;
                 current = view.stackMatch(prev, pushers, poppers);
-                if (current.classed("tangle_endif")) {
-                  break;
-                }
-                results.push(view.toggleRange(prev, current, show));
+                view.toggleRange(prev, current, shown ? false : show);
+                results.push(shown = shown || show);
               }
               return results;
             };
