@@ -32,8 +32,8 @@
               el = d3.select(this);
               change = function() {
                 var current, poppers, prev, pushers, results, show, shown;
-                pushers = ["tangle_if", "tangle_else", "tangle_elsif"];
-                poppers = ["tangle_endif", "tangle_else", "tangle_elsif"];
+                pushers = ["tangle_if", "tangle_else", "tangle_elif"];
+                poppers = ["tangle_endif", "tangle_else", "tangle_elif"];
                 current = el;
                 shown = false;
                 show = false;
@@ -41,7 +41,7 @@
                 while (!current.classed("tangle_endif")) {
                   if (current === el) {
                     show = "true" === d.template(view.context());
-                  } else if (current.classed("tangle_elsif")) {
+                  } else if (current.classed("tangle_elif")) {
                     show = "true" === current.datum().template(view.context());
                   } else if (current.classed("tangle_else")) {
                     show = !shown;
@@ -60,13 +60,13 @@
           };
         })(this)
       });
-      this.register("elsif", {
-        init: classedHidden("elsif"),
+      this.register("elif", {
+        init: classedHidden("elif"),
         parse: (function(_this) {
           return function(frag, el, extra) {
-            if (frag === "elsif") {
+            if (frag === "elif") {
               return {
-                type: "elsif",
+                type: "elif",
                 template: template
               };
             }

@@ -21,8 +21,8 @@ define [
         field.each (d) ->
           el = d3.select @
           change = ->
-            pushers = ["tangle_if", "tangle_else", "tangle_elsif"]
-            poppers = ["tangle_endif", "tangle_else", "tangle_elsif"]
+            pushers = ["tangle_if", "tangle_else", "tangle_elif"]
+            poppers = ["tangle_endif", "tangle_else", "tangle_elif"]
             current = el
             # only show the first hit
             shown = false
@@ -31,7 +31,7 @@ define [
             while not current.classed "tangle_endif"
               if current == el
                 show = "true" == d.template view.context()
-              else if current.classed "tangle_elsif"
+              else if current.classed "tangle_elif"
                 show = "true" == current.datum().template view.context()
               else if current.classed "tangle_else"
                 show = not shown
@@ -48,12 +48,12 @@ define [
           change()
           change()
 
-    @register "elsif",
-      init: classedHidden "elsif"
+    @register "elif",
+      init: classedHidden "elif"
 
       parse: (frag, el, extra) =>
-        if frag is "elsif"
-          type: "elsif"
+        if frag is "elif"
+          type: "elif"
           template: template
 
     for key in ["else", "endif"]
