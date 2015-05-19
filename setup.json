@@ -18,7 +18,7 @@
   "description": "Tangle reactive documents in the IPython Notebook",
   "include_package_data": true,
   "install_requires": [
-    "IPython",
+    "IPython[notebook]>3.0,<4.0",
     "jupyter-pip"
   ],
   "keywords": "IPython tangle",
@@ -28,12 +28,10 @@
     "ipytangle"
   ],
   "tests_require": [
-    "nose",
-    "jsonschema",
-    "pyzmq"
+    "nose"
   ],
   "setup_requires": [
-    "IPython",
+    "IPython[notebook]>3.0,<4.0",
     "jupyter-pip"
   ],
   "test_suite": "nose.collector",
