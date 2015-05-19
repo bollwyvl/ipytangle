@@ -6,3 +6,5 @@ node_modules
 ipytangle.xunit.xml
 .coverage
 .eggs
+build/
+dist/
