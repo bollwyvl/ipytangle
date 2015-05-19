@@ -3,8 +3,6 @@ from IPython.utils import traitlets
 
 __all__ = ["Tangle"]
 
-_dummy = widgets.DOMWidget()
-
 
 class Tangle(widgets.DOMWidget):
     """
@@ -22,9 +20,10 @@ class Tangle(widgets.DOMWidget):
     # for the future?
     _tangle_prefix = traitlets.Unicode("", sync=True)
     _tangle_upstream_traits = traitlets.Tuple(
-        tuple(_dummy.trait_names()),
         sync=True
     )
 
     def __init__(self, *args, **kwargs):
+        _dummy = widgets.DOMWidget()
+        kwargs["_tangle_upstream_traits"] = tuple(_dummy.trait_names())
         super(Tangle, self).__init__(*args, **kwargs)
