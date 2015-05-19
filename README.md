@@ -30,7 +30,7 @@ And interacting with the links would cause the result to update.
 See [the examples](./examples)!
 
 ## Screenshot
-> TODO 
+![](screenshots/cookies/02.png)
 
 ### Markdown
 `ipytangle` implements most of [TangleKit](https://github.com/worrydream/Tangle/blob/master/TangleKit/TangleKit.js) baseline as markdown links. Unrendered tangle markdown should still render in a useful way:

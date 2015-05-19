@@ -40,7 +40,8 @@ See `the examples <./examples>`__!
 Screenshot
 ----------
 
-    TODO
+.. figure:: screenshots/cookies/02.png
+   :alt: 
 
 Markdown
 ~~~~~~~~
