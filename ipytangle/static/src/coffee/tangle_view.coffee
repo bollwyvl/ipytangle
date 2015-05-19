@@ -1,18 +1,35 @@
+lib = (path)-> "/nbextensions/ipytangle/lib/#{path}"
+
+require.config
+  paths:
+    d3: lib "d3/d3"
+    math: lib "mathjs/dist/math.min"
+    numeral: lib "numeral/min/numeral.min"
+    rangy: lib "rangy/rangy-core"
+
 define [
   "underscore"
   "jquery"
   "backbone"
   "moment"
-  "../lib/d3/d3.js"
-  "../lib/mathjs/dist/math.min.js"
-  "../lib/numeral/min/numeral.min.js"
-  "../lib/rangy/rangy-core.js"
+  "d3"
+  "math"
+  "numeral"
+  "rangy"
+
   "widgets/js/widget"
   "base/js/events"
   "base/js/namespace"
+
+  "./tangle_if.js"
+  "./tangle_output.js"
+  "./tangle_variable.js"
 ], (
-  _, $, Backbone, moment, d3, math, numeral, rangy, widget, events, IPython
+  _, $, Backbone, moment, d3, math, numeral, rangy,
+  widget, events, IPython,
+  tangleIf, tangleOutput, tangleVariable
 ) ->
+  "use strict"
   $win = $ window
 
   d3.select "head"
@@ -29,11 +46,25 @@ define [
     EVT:
       MD: "rendered.MarkdownCell"
 
+
+    register: (urlFrag, {update, init}) =>
+      if not @_tangle_handlers
+        @_tangle_handlers = {}
+
+      @_tangle_handlers[urlFrag] = {update, init}
+      @
+
     render: ->
       super
       @_modelChange = {}
       view = @
       @templates = {}
+
+      plugin.call @, @ for plugin in [
+        tangleIf
+        tangleOutput
+        tangleVariable
+      ]
 
       @_env =
         moment: moment
@@ -237,42 +268,18 @@ define [
           it.datum view.nodeToConfig it
         .classed tangle: 1
 
-      @withType found, "output", @initOutput
-      @withType found, "variable", @initVariable
-      @withType found, "if", @initClassed "tangle_if"
-      @withType found, "else", @initClassed "tangle_else"
-      @withType found, "elsif", @initClassed "tangle_elsif"
-      @withType found, "endif", @initClassed "tangle_endif"
+      for frag, {update, init} of @_tangle_handlers
+        if init
+          @withType found, frag, init
 
       tangles = d3.select cell.element[0]
         .selectAll ".tangle"
 
-      @withType tangles, "output", @updateOutput
-      @withType tangles, "variable", @updateVariable
-      @withType tangles, "if", @updateIf
+      for frag, {update, init} of @_tangle_handlers
+        if update
+          @withType tangles, frag, update
 
       @
-
-    initOutput: (field) =>
-      view = @
-
-      field.classed tangle_output: 1
-        .style
-          "text-decoration": "none"
-          color: "black"
-
-    updateOutput: (field) =>
-      view = @
-      field.each (d) => d.template @context()
-        .each (d) ->
-          el = d3.select d
-          view.listenTo view.model, "change", ->
-            d.template view.context()
-
-    initClassed: (cls) ->
-      (field) ->
-        field.classed cls, 1
-          .style display: "none"
 
     stackMatch: (elFor, pushers, poppers) =>
       """
@@ -339,95 +346,6 @@ define [
       nodes.filter -> @nodeType != 3
         .classed hide: not show
 
-
-    updateIf: (field) =>
-      view = @
-
-      field.each (d) ->
-        el = d3.select @
-        change = ->
-          pushers = ["tangle_if", "tangle_else", "tangle_elsif"]
-          poppers = ["tangle_endif", "tangle_else", "tangle_elsif"]
-          current = el
-          # only show the first hit
-          shown = false
-          show = false
-
-          while not current.classed "tangle_endif"
-            if current == el
-              show = "true" == d.template view.context()
-            else if current.classed "tangle_elsif"
-              show = "true" == current.datum().template view.context()
-            else if current.classed "tangle_else"
-              show = not shown
-
-            prev = current
-            current = view.stackMatch prev, pushers, poppers
-
-            view.toggleRange prev, current, if shown then false else show
-            shown = shown or show
-
-
-        view.listenTo view.model, "change", change
-        # TODOD: fix this
-        change()
-        change()
-
-    updateVariable: (field) =>
-      view = @
-
-      field
-        .each ({template}) -> template view.context()
-        .each ({variable, template}) ->
-          el = d3.select @
-          view.listenTo view.model, "change:#{variable}", ->
-            template view.context()
-
-    initVariable: (field) =>
-      view = @
-
-      field
-        .classed tangle_variable: 1
-        .style
-          "text-decoration": "none"
-          "border-bottom": "dotted 1px blue"
-
-      field.filter ({choices, variable}) ->
-          not choices and typeof view.model.attributes[variable] == "number"
-        .call @initVariableNumeric
-
-      field.filter ({choices}) -> choices
-        .call @initVariableChoices
-
-      field
-        .each @tooltip
-
-    initVariableChoices: (field) =>
-      field
-        .attr
-          title: "click"
-        .on "click", (d) =>
-          old = @model.get d.variable
-          choices = d.choices()
-          old_idx = choices.indexOf old
-          @model.set d.variable, choices[(old_idx + 1) %% (choices.length)]
-          @touch()
-
-    initVariableNumeric: (field) =>
-      _touch = _.debounce => @touch()
-
-      drag = d3.behavior.drag()
-        .on "drag", (d) =>
-          old = @model.get d.variable
-          @model.set d.variable, d3.event.dx + old
-          _touch()
-
-      field
-        .attr
-          title: "drag"
-        .style
-          cursor: "ew-resize"
-        .call drag
 
 
     tooltip: -> $(@).tooltip placement: "bottom", container: "body"
