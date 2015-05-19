@@ -47,11 +47,17 @@ define [
       MD: "rendered.MarkdownCell"
 
 
-    register: (urlFrag, {update, init}) =>
+    register: (urlFrag=null, opt=null) =>
       if not @_tangle_handlers
         @_tangle_handlers = {}
 
-      @_tangle_handlers[urlFrag] = {update, init}
+      if urlFrag is null
+        return @_tangle_handlers
+
+      if opt is null
+        return @_tangle_handlers[urlFrag]
+
+      @_tangle_handlers[urlFrag] = opt
       @
 
     render: ->
@@ -60,6 +66,7 @@ define [
       view = @
       @templates = {}
 
+      # TODO: make this extensible with require
       plugin.call @, @ for plugin in [
         tangleIf
         tangleOutput
@@ -184,13 +191,8 @@ define [
       "tangle-updated": up
       "tangle-downdated": down
 
-    template: (el, config) =>
+    template: (el) =>
       _update = @tmplUpdateClasses
-
-      if config.type in ["if", "elsif"]
-        return _.template "<%= #{el.select("code").text()} %>"
-      else if config.type in ["endif", "else"]
-        return ->
 
       codes = el.selectAll "code"
         .each ->
@@ -225,33 +227,26 @@ define [
     nodeToConfig: (el) ->
       """
       implements the ipytangle URL minilanguage
-      - `:` a pure output view
-      - `<undecided_namespace>:some_variable`
-      - `:if` and `:endif`
       """
-      [namespace, expression] = el.attr("href")[1..].split ":"
+      [namespace, frag, extra...] = el.attr("href")[1..].split ":"
 
-      config = {}
 
-      switch expression
-        when ""
-          config =
-            type: "output"
-        when "if", "endif", "else", "elsif"
-          config =
-            type: expression
-        else
-          config =
-            type: "variable"
-            variable: expression
+      handler = @register frag
 
-          values = "_#{expression}_choices"
-          if values of @model.attributes
-            config.choices = => @model.get values
+      if handler
+        config = handler.parse? frag, el, extra
+        config = config or type: frag
+      else
+        for handlerFrag, handler of @register()
+          config = handler.parse? frag, el, extra
+          break if config
 
-      config.template = @template el, config
+      if config.template
+        config.template = config.template el
+      else
+        config.template = @template el
 
-      config or {}
+      config
 
     withType: (selection, _type, handler) ->
       selection.filter ({type}) -> type == _type
@@ -268,14 +263,14 @@ define [
           it.datum view.nodeToConfig it
         .classed tangle: 1
 
-      for frag, {update, init} of @_tangle_handlers
+      for frag, {update, init} of @register()
         if init
           @withType found, frag, init
 
       tangles = d3.select cell.element[0]
         .selectAll ".tangle"
 
-      for frag, {update, init} of @_tangle_handlers
+      for frag, {update, init} of @register()
         if update
           @withType tangles, frag, update
 

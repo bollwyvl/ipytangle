@@ -4,7 +4,8 @@
     bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     hasProp = {}.hasOwnProperty,
-    indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+    indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
+    slice = [].slice;
 
   lib = function(path) {
     return "/nbextensions/ipytangle/lib/" + path;
@@ -45,16 +46,23 @@
           MD: "rendered.MarkdownCell"
         };
 
-        TangleView.prototype.register = function(urlFrag, arg) {
-          var init, update;
-          update = arg.update, init = arg.init;
+        TangleView.prototype.register = function(urlFrag, opt) {
+          if (urlFrag == null) {
+            urlFrag = null;
+          }
+          if (opt == null) {
+            opt = null;
+          }
           if (!this._tangle_handlers) {
             this._tangle_handlers = {};
           }
-          this._tangle_handlers[urlFrag] = {
-            update: update,
-            init: init
-          };
+          if (urlFrag === null) {
+            return this._tangle_handlers;
+          }
+          if (opt === null) {
+            return this._tangle_handlers[urlFrag];
+          }
+          this._tangle_handlers[urlFrag] = opt;
           return this;
         };
 
@@ -217,14 +225,9 @@
           };
         };
 
-        TangleView.prototype.template = function(el, config) {
-          var _update, codes, ref, ref1;
+        TangleView.prototype.template = function(el) {
+          var _update, codes;
           _update = this.tmplUpdateClasses;
-          if ((ref = config.type) === "if" || ref === "elsif") {
-            return _.template("<%= " + (el.select("code").text()) + " %>");
-          } else if ((ref1 = config.type) === "endif" || ref1 === "else") {
-            return function() {};
-          }
           codes = el.selectAll("code").each(function() {
             var src;
             src = this.textContent;
@@ -262,40 +265,31 @@
         };
 
         TangleView.prototype.nodeToConfig = function(el) {
-          "implements the ipytangle URL minilanguage\n- `:` a pure output view\n- `<undecided_namespace>:some_variable`\n- `:if` and `:endif`";
-          var config, expression, namespace, ref, values;
-          ref = el.attr("href").slice(1).split(":"), namespace = ref[0], expression = ref[1];
-          config = {};
-          switch (expression) {
-            case "":
-              config = {
-                type: "output"
-              };
-              break;
-            case "if":
-            case "endif":
-            case "else":
-            case "elsif":
-              config = {
-                type: expression
-              };
-              break;
-            default:
-              config = {
-                type: "variable",
-                variable: expression
-              };
-              values = "_" + expression + "_choices";
-              if (values in this.model.attributes) {
-                config.choices = (function(_this) {
-                  return function() {
-                    return _this.model.get(values);
-                  };
-                })(this);
+          "implements the ipytangle URL minilanguage";
+          var config, extra, frag, handler, handlerFrag, namespace, ref, ref1;
+          ref = el.attr("href").slice(1).split(":"), namespace = ref[0], frag = ref[1], extra = 3 <= ref.length ? slice.call(ref, 2) : [];
+          handler = this.register(frag);
+          if (handler) {
+            config = typeof handler.parse === "function" ? handler.parse(frag, el, extra) : void 0;
+            config = config || {
+              type: frag
+            };
+          } else {
+            ref1 = this.register();
+            for (handlerFrag in ref1) {
+              handler = ref1[handlerFrag];
+              config = typeof handler.parse === "function" ? handler.parse(frag, el, extra) : void 0;
+              if (config) {
+                break;
               }
+            }
           }
-          config.template = this.template(el, config);
-          return config || {};
+          if (config.template) {
+            config.template = config.template(el);
+          } else {
+            config.template = this.template(el);
+          }
+          return config;
         };
 
         TangleView.prototype.withType = function(selection, _type, handler) {
@@ -317,7 +311,7 @@
           }).classed({
             tangle: 1
           });
-          ref = this._tangle_handlers;
+          ref = this.register();
           for (frag in ref) {
             ref1 = ref[frag], update = ref1.update, init = ref1.init;
             if (init) {
@@ -325,7 +319,7 @@
             }
           }
           tangles = d3.select(cell.element[0]).selectAll(".tangle");
-          ref2 = this._tangle_handlers;
+          ref2 = this.register();
           for (frag in ref2) {
             ref3 = ref2[frag], update = ref3.update, init = ref3.init;
             if (update) {

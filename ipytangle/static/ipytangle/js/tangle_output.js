@@ -3,6 +3,15 @@
   define([], function() {
     return function(view) {
       return this.register("output", {
+        parse: (function(_this) {
+          return function(expression, el, extras) {
+            if (expression === "") {
+              return {
+                type: "output"
+              };
+            }
+          };
+        })(this),
         init: (function(_this) {
           return function(field) {
             return field.classed({

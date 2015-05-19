@@ -1,9 +1,21 @@
-define [], ->
+define [
+  "underscore"
+], (_)->
   (view)->
-    @register "if",
-      init: (field) =>
-        field.classed "tangle_if", 1
+    classedHidden = (cls)->
+      (field) ->
+        field.classed "tangle_#{cls}", 1
           .style display: "none"
+
+    template = (el) -> _.template "<%= #{el.select("code").text()} %>"
+
+    @register "if",
+      init: classedHidden "if"
+
+      parse: (frag, el, extra) =>
+        if frag is "if"
+          type: "if"
+          template: template
 
       update: (field) =>
         field.each (d) ->
@@ -37,17 +49,17 @@ define [], ->
           change()
 
     @register "elsif",
-      init: (field) =>
-        field.classed "tangle_elsif", 1
-          .style display: "none"
+      init: classedHidden "elsif"
 
+      parse: (frag, el, extra) =>
+        if frag is "elsif"
+          type: "elsif"
+          template: template
 
-    @register "else",
-      init: (field) =>
-        field.classed "tangle_else", 1
-          .style display: "none"
-
-    @register "endif",
-      init: (field) =>
-        field.classed "tangle_endif", 1
-          .style display: "none"
+    for key in ["else", "endif"]
+      @register key,
+        init: classedHidden key
+        parse: (frag, el, extra) =>
+          if frag is key
+            type: key
+            template: ->

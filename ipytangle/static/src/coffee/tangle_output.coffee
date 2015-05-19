@@ -1,6 +1,10 @@
 define [], ->
   (view)->
     @register "output",
+      parse: (expression, el, extras) =>
+        if expression is ""
+          return type: "output"
+
       init: (field) =>
         field.classed tangle_output: 1
           .style

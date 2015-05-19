@@ -4,40 +4,26 @@
 
   define(["d3"], function(d3) {
     return function(view) {
-      this.initVariableChoices = (function(_this) {
-        return function(field) {
-          return field.attr({
-            title: "click"
-          }).on("click", function(d) {
-            var choices, old, old_idx;
-            old = _this.model.get(d.variable);
-            choices = d.choices();
-            old_idx = choices.indexOf(old);
-            _this.model.set(d.variable, choices[modulo(old_idx + 1, choices.length)]);
-            return _this.touch();
-          });
-        };
-      })(this);
-      this.initVariableNumeric = (function(_this) {
-        return function(field) {
-          var _touch, drag;
-          _touch = _.debounce(function() {
-            return _this.touch();
-          });
-          drag = d3.behavior.drag().on("drag", function(d) {
-            var old;
-            old = _this.model.get(d.variable);
-            _this.model.set(d.variable, d3.event.dx + old);
-            return _touch();
-          });
-          return field.attr({
-            title: "drag"
-          }).style({
-            cursor: "ew-resize"
-          }).call(drag);
-        };
-      })(this);
-      return this.register("variable", {
+      this.register("variable", {
+        parse: (function(_this) {
+          return function(expression, el, extra) {
+            var config, values;
+            if (expression === "") {
+              return;
+            }
+            config = {
+              type: "variable",
+              variable: expression
+            };
+            values = "_" + expression + "_choices";
+            if (values in _this.model.attributes) {
+              config.choices = function() {
+                return _this.model.get(values);
+              };
+            }
+            return config;
+          };
+        })(this),
         update: (function(_this) {
           return function(field) {
             return field.each(function(arg) {
@@ -76,6 +62,39 @@
           };
         })(this)
       });
+      this.initVariableChoices = (function(_this) {
+        return function(field) {
+          return field.attr({
+            title: "click"
+          }).on("click", function(d) {
+            var choices, old, old_idx;
+            old = _this.model.get(d.variable);
+            choices = d.choices();
+            old_idx = choices.indexOf(old);
+            _this.model.set(d.variable, choices[modulo(old_idx + 1, choices.length)]);
+            return _this.touch();
+          });
+        };
+      })(this);
+      return this.initVariableNumeric = (function(_this) {
+        return function(field) {
+          var _touch, drag;
+          _touch = _.debounce(function() {
+            return _this.touch();
+          });
+          drag = d3.behavior.drag().on("drag", function(d) {
+            var old;
+            old = _this.model.get(d.variable);
+            _this.model.set(d.variable, d3.event.dx + old);
+            return _touch();
+          });
+          return field.attr({
+            title: "drag"
+          }).style({
+            cursor: "ew-resize"
+          }).call(drag);
+        };
+      })(this);
     };
   });
 
