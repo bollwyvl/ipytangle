@@ -14,6 +14,8 @@
   "devDependencies": {
     "coffee-script": "~1.9.2",
     "less": "~2.5.0",
-    "watch": "~0.16.0"
+    "watch": "~0.16.0",
+    "bower": "~1.4.1",
+    "phantomjs": "~1.9.16"
   }
 }

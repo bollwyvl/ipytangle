@@ -4,6 +4,7 @@ python:
   - 2.7
   - 3.4
 install:
+  - npm install
   - pip install -q -r requirements-dev.txt
   - pip freeze
   - python setup.py develop
@@ -11,6 +12,8 @@ script:
   - python -m flake8 *.py ipytangle/*.py
   - PYTHONWARNINGS=ignore python setup.py test
 cache:
+  pip: true
+  npm: true
   directories:
     - /home/travis/virtualenv/python3.4.2/lib/python3.4/site-packages
     - /home/travis/virtualenv/python2.7.9/lib/python2.7/site-packages
