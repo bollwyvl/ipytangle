@@ -27,11 +27,14 @@
   "packages": [
     "ipytangle"
   ],
-  "setup_requires": [
+  "tests_require": [
     "nose",
-    "IPython",
     "jsonschema",
     "pyzmq"
+  ],
+  "setup_requires": [
+    "IPython",
+    "jupyter-pip"
   ],
   "test_suite": "nose.collector",
   "url": "http://github.com/bollwyvl/ipytangle",
