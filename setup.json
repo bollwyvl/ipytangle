@@ -16,6 +16,7 @@
     "Topic :: Scientific/Engineering :: Visualization"
   ],
   "description": "Tangle reactive documents in the IPython Notebook",
+  "include_package_data": true,
   "install_requires": [
     "IPython",
     "jupyter-pip"
@@ -23,7 +24,7 @@
   "keywords": "IPython tangle",
   "license": "BSD",
   "name": "ipytangle",
-  "py_modules": [
+  "packages": [
     "ipytangle"
   ],
   "setup_requires": [

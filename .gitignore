@@ -5,3 +5,4 @@ node_modules
 *.egg-info/
 ipytangle.xunit.xml
 .coverage
+.eggs
