@@ -17,6 +17,7 @@
   ],
   "description": "Tangle reactive documents in the IPython Notebook",
   "install_requires": [
+    "IPython",
     "jupyter-pip"
   ],
   "keywords": "IPython tangle",
