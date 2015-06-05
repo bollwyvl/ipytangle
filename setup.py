@@ -14,6 +14,7 @@ except:
     pip.main(["install", "jupyter-pip"])
     cmdclass = importlib.import_module("jupyterpip").cmdclass
 
+
 with open("setup.json") as f:
     setup_data = json.load(f)
 

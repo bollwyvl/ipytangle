@@ -27,6 +27,10 @@
   "packages": [
     "ipytangle"
   ],
+  "setup_requires": [
+    "IPython>3.0,<4.0",
+    "jupyter-pip"
+  ],
   "tests_require": [
     "nose"
   ],

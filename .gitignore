@@ -8,3 +8,4 @@ ipytangle.xunit.xml
 .eggs
 build/
 dist/
+*.pyc
