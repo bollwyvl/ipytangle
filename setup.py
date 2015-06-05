@@ -1,7 +1,6 @@
 import json
 
 from setuptools import setup
-from setuptools.command.test import test as TestCommand
 
 
 try:
@@ -12,14 +11,6 @@ except:
 
     pip.main(["install", "jupyter-pip"])
     cmdclass = importlib.import_module("jupyterpip").cmdclass
-
-
-class NosercTestCommand(TestCommand):
-    def run_tests(self):
-        # Run nose ensuring that argv simulates running nosetests directly
-        import nose
-        nose.run_exit(argv=['nosetests', '-c', './.noserc'])
-
 
 with open("setup.json") as f:
     setup_data = json.load(f)
@@ -36,10 +27,6 @@ setup_data.update(
             setup_data["packages"][0]
         )
     )
-)
-
-setup_data["cmdclass"].update(
-    test=NosercTestCommand
 )
 
 setup(**setup_data)
