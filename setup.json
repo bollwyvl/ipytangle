@@ -30,14 +30,6 @@
   "tests_require": [
     "nose"
   ],
-  "setup_requires": [
-    "IPython>3.0,<4.0",
-    "jupyter-pip"
-  ],
-  "install_requires": [
-    "IPython>3.0,<4.0",
-    "jupyter-pip"
-  ],
   "test_suite": "nose.collector",
   "url": "http://github.com/bollwyvl/ipytangle",
   "version": "0.1.1"
