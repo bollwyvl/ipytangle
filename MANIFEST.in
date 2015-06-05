@@ -10,7 +10,10 @@ recursive-include ipytangle/static/ipytangle *.*
 
 recursive-exclude . __pycache__
 recursive-exclude . *.py[co]
-recursive-exclude ipytangle/static/ipytangle/lib/mathjs/lib *.*
-recursive-exclude ipytangle/static/ipytangle/lib/mathjs/docs *.*
-recursive-exclude ipytangle/static/ipytangle/lib/mathjs/examples *.*
-recursive-exclude ipytangle/static/ipytangle/lib/numeral/tests *.*
+
+prune ipytangle/static/ipytangle/lib/mathjs/bin
+prune ipytangle/static/ipytangle/lib/mathjs/docs
+prune ipytangle/static/ipytangle/lib/mathjs/examples
+prune ipytangle/static/ipytangle/lib/mathjs/lib
+prune ipytangle/static/ipytangle/lib/numeral/languages
+prune ipytangle/static/ipytangle/lib/numeral/tests
