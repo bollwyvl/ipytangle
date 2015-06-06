@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import json
+import sys
 
 from setuptools import setup
 
@@ -18,6 +19,10 @@ except:
 with open("setup.json") as f:
     setup_data = json.load(f)
 
+if sys.version_info[0] < 3:
+    # insidious! http://bugs.python.org/issue13943
+    setup_data["packages"] = [s.encode("utf-8")
+                              for s in setup_data["packages"]]
 
 with open("README.rst") as f:
     setup_data.update(
