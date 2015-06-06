@@ -208,8 +208,15 @@ define [
       (attributes) ->
         codes
           .each (d) ->
+            it = d3.select @
             d._old = @textContent
-            d._new = "#{d.fn attributes}"
+            try
+              d._new = "#{d.fn attributes}"
+              it.classed error: 0
+            catch err
+              console.error "Tangle error:\n#{err}"
+              d._new = d._old
+              it.classed error: 1
           .text (d) -> d._new
 
         updated = codes.filter (d) -> d._old < d._new
