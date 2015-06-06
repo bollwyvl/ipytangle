@@ -240,8 +240,22 @@
           return function(attributes) {
             var downdated, updated;
             codes.each(function(d) {
+              var err, it;
+              it = d3.select(this);
               d._old = this.textContent;
-              return d._new = "" + (d.fn(attributes));
+              try {
+                d._new = "" + (d.fn(attributes));
+                return it.classed({
+                  error: 0
+                });
+              } catch (_error) {
+                err = _error;
+                console.error("Tangle error:\n" + err);
+                d._new = d._old;
+                return it.classed({
+                  error: 1
+                });
+              }
             }).text(function(d) {
               return d._new;
             });
