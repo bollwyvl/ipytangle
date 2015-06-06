@@ -18,6 +18,8 @@ except:
 with open("setup.json") as f:
     setup_data = json.load(f)
 
+# insidious! http://bugs.python.org/issue13943
+setup_data["packages"] = [s.encode('utf-8') for s in setup_data["packages"]]
 
 with open("README.rst") as f:
     setup_data.update(

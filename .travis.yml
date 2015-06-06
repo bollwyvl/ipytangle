@@ -9,7 +9,7 @@ install:
   - python setup.py develop
 script:
   - python -m flake8 *.py ipytangle/*.py
-  - PYTHONWARNINGS=ignore python setup.py test
+  - PYTHONWARNINGS=ignore python setup.py nosetests
 cache:
   directories:
     - node_modules

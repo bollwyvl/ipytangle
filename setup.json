@@ -32,9 +32,10 @@
     "jupyter-pip"
   ],
   "tests_require": [
-    "nose"
+    "nose",
+    "coverage"
   ],
   "test_suite": "nose.collector",
   "url": "http://github.com/bollwyvl/ipytangle",
-  "version": "0.1.3"
+  "version": "0.1.4"
 }
