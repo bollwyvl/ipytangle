@@ -128,17 +128,20 @@ define [
 
       d3.select @body.node().parentNode
         .append "div"
-        .classed "form-group": 1
-        .call (toggle)->
+        .classed "checkbox": 1
+        .call (toggle) ->
           toggle.append "label"
-            .classed "control-label": 1
-            .text "Cell Hiding"
-          toggle.append "input"
-            .attr
-              type: "checkbox"
-            .on "change", ->
-              view.model.set "_enable_show_cells",
-                not view.model.get "_enable_show_cells"
+            .call (label) ->
+              view.cellHiding = label.append "input"
+                .classed "cell-hiding": 1
+                .attr
+                  type: "checkbox"
+                .on "click", ->
+                  view.model.set "_tangle_cell_hiding",
+                    not view.model.get "_tangle_cell_hiding"
+              label.append "span"
+                .text "Cell Hiding"
+
 
       events.on @EVT.MD, @onMarkdown
 
@@ -154,6 +157,9 @@ define [
       super
       view = @
 
+      cellHiding = view.model.get "_tangle_cell_hiding"
+      @cellHiding.property "checked", cellHiding
+
       # move to toolbar?
       for cell in @cells()
         show = true
@@ -162,7 +168,7 @@ define [
           .select ".tangle-cell-showif"
           .classed "has-error": 0
 
-        if showIf and view.model.get "_enable_show_cells"
+        if showIf and cellHiding
           fn = @compileFunc showIf
           try
             show = fn @context()

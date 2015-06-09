@@ -22,6 +22,9 @@ class Tangle(widgets.DOMWidget):
     _tangle_upstream_traits = traitlets.Tuple(
         sync=True
     )
+    _tangle_cell_hiding = traitlets.Bool(
+        sync=True
+    )
 
     def __init__(self, *args, **kwargs):
         _dummy = widgets.DOMWidget()

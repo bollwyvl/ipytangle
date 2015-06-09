@@ -135,15 +135,17 @@
             row: 1
           });
           d3.select(this.body.node().parentNode).append("div").classed({
-            "form-group": 1
+            "checkbox": 1
           }).call(function(toggle) {
-            toggle.append("label").classed({
-              "control-label": 1
-            }).text("Cell Hiding");
-            return toggle.append("input").attr({
-              type: "checkbox"
-            }).on("change", function() {
-              return view.model.set("_enable_show_cells", !view.model.get("_enable_show_cells"));
+            return toggle.append("label").call(function(label) {
+              view.cellHiding = label.append("input").classed({
+                "cell-hiding": 1
+              }).attr({
+                type: "checkbox"
+              }).on("click", function() {
+                return view.model.set("_tangle_cell_hiding", !view.model.get("_tangle_cell_hiding"));
+              });
+              return label.append("span").text("Cell Hiding");
             });
           });
           events.on(this.EVT.MD, this.onMarkdown);
@@ -163,9 +165,11 @@
         };
 
         TangleView.prototype.update = function() {
-          var cell, changed, error, expanded, fn, i, key, len, now, ref, ref1, row, rows, show, showIf, toolbar, view;
+          var cell, cellHiding, changed, error, expanded, fn, i, key, len, now, ref, ref1, row, rows, show, showIf, toolbar, view;
           TangleView.__super__.update.apply(this, arguments);
           view = this;
+          cellHiding = view.model.get("_tangle_cell_hiding");
+          this.cellHiding.property("checked", cellHiding);
           ref = this.cells();
           for (i = 0, len = ref.length; i < len; i++) {
             cell = ref[i];
@@ -174,7 +178,7 @@
             toolbar = d3.select(cell.element[0]).select(".tangle-cell-showif").classed({
               "has-error": 0
             });
-            if (showIf && view.model.get("_enable_show_cells")) {
+            if (showIf && cellHiding) {
               fn = this.compileFunc(showIf);
               try {
                 show = fn(this.context());
