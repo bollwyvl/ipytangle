@@ -21,16 +21,22 @@ define [
   "base/js/events"
   "base/js/namespace"
 
+  "./tangle_celltoolbar.js"
+
   "./tangle_if.js"
   "./tangle_output.js"
   "./tangle_variable.js"
 ], (
   _, $, Backbone, moment, d3, math, numeral, rangy,
   widget, events, IPython,
+  ctb,
   tangleIf, tangleOutput, tangleVariable
 ) ->
   "use strict"
   $win = $ window
+
+  # register toolbar... is this safe to call multiple times?
+  ctb.register IPython.notebook
 
   d3.select "head"
     .selectAll "#tangle-styles"
@@ -46,6 +52,7 @@ define [
     EVT:
       MD: "rendered.MarkdownCell"
 
+    cells: -> IPython.notebook.get_cells()
 
     register: (urlFrag=null, opt=null) =>
       if not @_tangle_handlers
@@ -119,17 +126,56 @@ define [
         .append "div"
         .classed row: 1
 
-      events.on @EVT.MD, @onMarkdown
-      @update()
+      d3.select @body.node().parentNode
+        .append "div"
+        .classed "checkbox": 1
+        .call (toggle) ->
+          toggle.append "label"
+            .call (label) ->
+              view.cellHiding = label.append "input"
+                .classed "cell-hiding": 1
+                .attr
+                  type: "checkbox"
+                .on "click", ->
+                  view.model.set "_tangle_cell_hiding",
+                    not view.model.get "_tangle_cell_hiding"
+              label.append "span"
+                .text "Cell Hiding"
 
-      for cell in IPython.notebook.get_cells()
+
+      events.on @EVT.MD, @onMarkdown
+
+      for cell in @cells()
         if cell.cell_type == "markdown" and cell.rendered
           cell.unrender()
           cell.execute()
 
+      _.defer => @update()
+
+
     update: ->
       super
       view = @
+
+      cellHiding = view.model.get "_tangle_cell_hiding"
+      @cellHiding.property "checked", cellHiding
+
+      # move to toolbar?
+      for cell in @cells()
+        show = true
+        showIf = cell.metadata.tangle?.showIf
+        toolbar = d3.select cell.element[0]
+          .select ".tangle-cell-showif"
+          .classed "has-error": 0
+
+        if showIf and cellHiding
+          fn = @compileFunc showIf
+          try
+            show = fn @context()
+          catch error
+            toolbar.classed "has-error": 1
+
+        cell.element[if show then "fadeIn" else "fadeOut"]()
 
       now = new Date()
       changed = @model.changed
@@ -191,7 +237,15 @@ define [
       "tangle-updated": up
       "tangle-downdated": down
 
+    compileFunc: (src) ->
+      new Function "obj", """
+          with(obj){
+            return (#{src});
+          }
+        """
+
     template: (el) =>
+      view = @
       _update = @tmplUpdateClasses
 
       codes = el.selectAll "code"
@@ -199,11 +253,7 @@ define [
           src = @textContent
           d3.select @
             .datum ->
-              fn: new Function "obj", """
-                  with(obj){
-                    return (#{src});
-                  }
-                """
+              fn: view.compileFunc src
 
       (attributes) ->
         codes

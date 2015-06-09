@@ -20,10 +20,11 @@
     }
   });
 
-  define(["underscore", "jquery", "backbone", "moment", "d3", "math", "numeral", "rangy", "widgets/js/widget", "base/js/events", "base/js/namespace", "./tangle_if.js", "./tangle_output.js", "./tangle_variable.js"], function(_, $, Backbone, moment, d3, math, numeral, rangy, widget, events, IPython, tangleIf, tangleOutput, tangleVariable) {
+  define(["underscore", "jquery", "backbone", "moment", "d3", "math", "numeral", "rangy", "widgets/js/widget", "base/js/events", "base/js/namespace", "./tangle_celltoolbar.js", "./tangle_if.js", "./tangle_output.js", "./tangle_variable.js"], function(_, $, Backbone, moment, d3, math, numeral, rangy, widget, events, IPython, ctb, tangleIf, tangleOutput, tangleVariable) {
     "use strict";
     var $win, TangleView;
     $win = $(window);
+    ctb.register(IPython.notebook);
     d3.select("head").selectAll("#tangle-styles").data([1]).enter().append("link").attr({
       id: "tangle-styles",
       href: "/nbextensions/ipytangle/css/tangle.css",
@@ -44,6 +45,10 @@
 
         TangleView.prototype.EVT = {
           MD: "rendered.MarkdownCell"
+        };
+
+        TangleView.prototype.cells = function() {
+          return IPython.notebook.get_cells();
         };
 
         TangleView.prototype.register = function(urlFrag, opt) {
@@ -67,7 +72,7 @@
         };
 
         TangleView.prototype.render = function() {
-          var cell, i, j, len, len1, plugin, ref, ref1, results, view;
+          var cell, i, j, len, len1, plugin, ref, ref1, view;
           TangleView.__super__.render.apply(this, arguments);
           this._modelChange = {};
           view = this;
@@ -129,26 +134,63 @@
           }).append("div").classed({
             row: 1
           });
+          d3.select(this.body.node().parentNode).append("div").classed({
+            "checkbox": 1
+          }).call(function(toggle) {
+            return toggle.append("label").call(function(label) {
+              view.cellHiding = label.append("input").classed({
+                "cell-hiding": 1
+              }).attr({
+                type: "checkbox"
+              }).on("click", function() {
+                return view.model.set("_tangle_cell_hiding", !view.model.get("_tangle_cell_hiding"));
+              });
+              return label.append("span").text("Cell Hiding");
+            });
+          });
           events.on(this.EVT.MD, this.onMarkdown);
-          this.update();
-          ref1 = IPython.notebook.get_cells();
-          results = [];
+          ref1 = this.cells();
           for (j = 0, len1 = ref1.length; j < len1; j++) {
             cell = ref1[j];
             if (cell.cell_type === "markdown" && cell.rendered) {
               cell.unrender();
-              results.push(cell.execute());
-            } else {
-              results.push(void 0);
+              cell.execute();
             }
           }
-          return results;
+          return _.defer((function(_this) {
+            return function() {
+              return _this.update();
+            };
+          })(this));
         };
 
         TangleView.prototype.update = function() {
-          var changed, expanded, key, now, row, rows, view;
+          var cell, cellHiding, changed, error, expanded, fn, i, key, len, now, ref, ref1, row, rows, show, showIf, toolbar, view;
           TangleView.__super__.update.apply(this, arguments);
           view = this;
+          cellHiding = view.model.get("_tangle_cell_hiding");
+          this.cellHiding.property("checked", cellHiding);
+          ref = this.cells();
+          for (i = 0, len = ref.length; i < len; i++) {
+            cell = ref[i];
+            show = true;
+            showIf = (ref1 = cell.metadata.tangle) != null ? ref1.showIf : void 0;
+            toolbar = d3.select(cell.element[0]).select(".tangle-cell-showif").classed({
+              "has-error": 0
+            });
+            if (showIf && cellHiding) {
+              fn = this.compileFunc(showIf);
+              try {
+                show = fn(this.context());
+              } catch (_error) {
+                error = _error;
+                toolbar.classed({
+                  "has-error": 1
+                });
+              }
+            }
+            cell.element[show ? "fadeIn" : "fadeOut"]();
+          }
           now = new Date();
           changed = this.model.changed;
           for (key in this.model.changed) {
@@ -161,8 +203,8 @@
           rows = d3.entries(this.model.attributes).filter(function(attr) {
             return attr.key[0] !== "_";
           }).filter(function(attr) {
-            var ref;
-            return ref = attr.key, indexOf.call(view.model.attributes._tangle_upstream_traits, ref) < 0;
+            var ref2;
+            return ref2 = attr.key, indexOf.call(view.model.attributes._tangle_upstream_traits, ref2) < 0;
           });
           rows.sort((function(_this) {
             return function(a, b) {
@@ -225,15 +267,20 @@
           };
         };
 
+        TangleView.prototype.compileFunc = function(src) {
+          return new Function("obj", "with(obj){\n  return (" + src + ");\n}");
+        };
+
         TangleView.prototype.template = function(el) {
-          var _update, codes;
+          var _update, codes, view;
+          view = this;
           _update = this.tmplUpdateClasses;
           codes = el.selectAll("code").each(function() {
             var src;
             src = this.textContent;
             return d3.select(this).datum(function() {
               return {
-                fn: new Function("obj", "with(obj){\n  return (" + src + ");\n}")
+                fn: view.compileFunc(src)
               };
             });
           });
