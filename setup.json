@@ -37,5 +37,5 @@
   ],
   "test_suite": "nose.collector",
   "url": "http://github.com/bollwyvl/ipytangle",
-  "version": "0.2.0"
+  "version": "0.3.0"
 }
