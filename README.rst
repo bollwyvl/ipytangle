@@ -16,7 +16,7 @@ data-driven narrative.
 .. |pypi-badge| image:: https://img.shields.io/pypi/v/ipytangle.svg
    :target: https://pypi.python.org/pypi/ipytangle/
 
-.. figure:: screenshots/cookies/02.png
+.. figure:: screenshots/cookies/002_change.png
    :alt: 
 
 Installation
@@ -67,6 +67,14 @@ Adapted from the originals from
 -  `Cookies <notebooks/examples/Cookies.ipynb>`__
 -  `California State Parks Proposition
    21 <notebooks/examples/Proposition%2021.ipynb>`__
+
+Additionally, ``ipytangle`` comes with integration with IPython's
+``interact``, the easiest way to start using widgets.
+
+-  ```Interact``\ ing with a
+   tangle <notebooks/examples/Interacting%20with%20a%20tangle.ipynb>`__
+-  `Tangling up
+   ``interact`` <notebooks/examples/Tangling%20up%20interact.ipynb>`__
 
 Markdown
 --------

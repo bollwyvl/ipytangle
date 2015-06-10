@@ -67,6 +67,4 @@ casper.notebook_test ->
   capture "set-x"
 
   @then ->
-    @test.assertSelectorHasText ".selected .output_stdout",
-      "1.9092974268256817\n",
-      "...changing tangle changes interact"
+    @test.assertTextExists "1.90929", "...changing tangle changes interact"
