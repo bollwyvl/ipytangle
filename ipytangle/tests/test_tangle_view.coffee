@@ -1,8 +1,9 @@
 casper.notebook_test ->
   cells = {}
-  
+
   @viewport 1024, 768
-  
+  capture = require("./capture") @, "cookies"
+
   @then ->
     @execute_cell @append_cell """
         import time
@@ -40,21 +41,19 @@ casper.notebook_test ->
       """,
       "markdown"
 
-  @then ->
-    @captureSelector "screenshots/cookies/00.png",  "#notebook"
-  
+  capture "render"
+
   @then ->
     @evaluate (idx) ->
         IPython.notebook.get_cell(idx).render()
       , idx: cells.md
 
-  @then ->
-    @captureSelector "screenshots/cookies/01.png",  "#notebook"
+  capture "render2"
 
   @then ->
     @test.assertSelectorHasText ".tangle_variable code", "3",
       "...value is initialized"
-  
+
   @then ->
     @execute_cell @append_cell """
         jar.cookies = 1
@@ -71,4 +70,4 @@ casper.notebook_test ->
 
   @then ->
     @wait 1000, ->
-      @captureSelector "screenshots/cookies/02.png",  "#notebook"
+      capture "change"

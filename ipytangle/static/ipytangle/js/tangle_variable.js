@@ -15,9 +15,9 @@
               type: "variable",
               variable: expression
             };
-            values = "_" + expression + "_choices";
+            values = expression + "_options";
             if (values in _this.model.attributes) {
-              config.choices = function() {
+              config.options = function() {
                 return _this.model.get(values);
               };
             }
@@ -49,29 +49,29 @@
               "border-bottom": "dotted 1px blue"
             });
             field.filter(function(arg) {
-              var choices, variable;
-              choices = arg.choices, variable = arg.variable;
-              return !choices && typeof view.model.attributes[variable] === "number";
+              var options, variable;
+              options = arg.options, variable = arg.variable;
+              return !options && typeof view.model.attributes[variable] === "number";
             }).call(_this.initVariableNumeric);
             field.filter(function(arg) {
-              var choices;
-              choices = arg.choices;
-              return choices;
-            }).call(_this.initVariableChoices);
+              var options;
+              options = arg.options;
+              return options;
+            }).call(_this.initVariableoptions);
             return field.each(_this.tooltip);
           };
         })(this)
       });
-      this.initVariableChoices = (function(_this) {
+      this.initVariableoptions = (function(_this) {
         return function(field) {
           return field.attr({
             title: "click"
           }).on("click", function(d) {
-            var choices, old, old_idx;
+            var old, old_idx, options;
             old = _this.model.get(d.variable);
-            choices = d.choices();
-            old_idx = choices.indexOf(old);
-            _this.model.set(d.variable, choices[modulo(old_idx + 1, choices.length)]);
+            options = d.options();
+            old_idx = options.indexOf(old);
+            _this.model.set(d.variable, options[modulo(old_idx + 1, options.length)]);
             return _this.touch();
           });
         };

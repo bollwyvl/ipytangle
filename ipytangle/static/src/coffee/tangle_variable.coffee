@@ -11,9 +11,9 @@ define [
           type: "variable"
           variable: expression
 
-        values = "_#{expression}_choices"
+        values = "#{expression}_options"
         if values of @model.attributes
-          config.choices = => @model.get values
+          config.options = => @model.get values
 
         config
 
@@ -32,26 +32,26 @@ define [
             "text-decoration": "none"
             "border-bottom": "dotted 1px blue"
 
-        field.filter ({choices, variable}) ->
-            not choices and typeof view.model.attributes[variable] == "number"
+        field.filter ({options, variable}) ->
+            not options and typeof view.model.attributes[variable] == "number"
           .call @initVariableNumeric
 
-        field.filter ({choices}) -> choices
-          .call @initVariableChoices
+        field.filter ({options}) -> options
+          .call @initVariableoptions
 
         field
           .each @tooltip
 
 
-    @initVariableChoices = (field) =>
+    @initVariableoptions = (field) =>
       field
         .attr
           title: "click"
         .on "click", (d) =>
           old = @model.get d.variable
-          choices = d.choices()
-          old_idx = choices.indexOf old
-          @model.set d.variable, choices[(old_idx + 1) %% (choices.length)]
+          options = d.options()
+          old_idx = options.indexOf old
+          @model.set d.variable, options[(old_idx + 1) %% (options.length)]
           @touch()
 
 

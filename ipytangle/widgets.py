@@ -4,7 +4,11 @@ from IPython.utils import traitlets
 __all__ = ["Tangle"]
 
 
-class Tangle(widgets.DOMWidget):
+class TangleBase(widgets.DOMWidget):
+    pass
+
+
+class Tangle(TangleBase):
     """
     The base Tangle class: subclass this if you know your way around
     `traitlets`.
@@ -16,6 +20,10 @@ class Tangle(widgets.DOMWidget):
         "/nbextensions/ipytangle/js/tangle_view.js",
         sync=True
     )
+
+    # compatibilty with core types (interact)
+    description = traitlets.Unicode("Tangle", sync=True)
+    value = traitlets.Instance(sync=True, klass=TangleBase)
 
     # for the future?
     _tangle_prefix = traitlets.Unicode("", sync=True)
@@ -30,3 +38,9 @@ class Tangle(widgets.DOMWidget):
         _dummy = widgets.DOMWidget()
         kwargs["_tangle_upstream_traits"] = tuple(_dummy.trait_names())
         super(Tangle, self).__init__(*args, **kwargs)
+        self.value = self
+        self.on_trait_change(self._notify_value)
+
+    def _notify_value(self, name, old, new):
+        if name != "value":
+            self._notify_trait("value", self, self)
