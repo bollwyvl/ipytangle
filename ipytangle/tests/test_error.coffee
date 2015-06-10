@@ -2,6 +2,7 @@ casper.notebook_test ->
   cells = {}
 
   @viewport 1024, 768
+  capture = require("./capture") @, "error"
 
   @then ->
     @execute_cell @append_cell """
@@ -50,4 +51,4 @@ casper.notebook_test ->
 
   @then ->
     @wait 1000, ->
-      @captureSelector "screenshots/errors/01.png",  "#notebook"
+      capture "missing"
