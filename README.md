@@ -58,8 +58,8 @@ Adapted from the originals from [Tangle](http://worrydream.com/Tangle/).
 
 Additionally, `ipytangle` comes with integration with IPython's `interact`, the easiest way to start using widgets.
 
-- [`Interact`ing with a tangle](notebooks/examples/Interacting with a tangle.ipynb)
-- [Tangling up `interact`](notebooks/examples/Tangling up interact.ipynb)
+- [`Interact`ing with a tangle](notebooks/Interacting with a tangle.ipynb)
+- [Tangling up `interact`](notebooks/Tangling up interact.ipynb)
 
 ## Markdown
 `ipytangle` implements most of the [TangleKit](https://github.com/worrydream/Tangle/blob/master/TangleKit/TangleKit.js) baseline as markdown links. Because it adds no new notation, unrendered Tangle Markdown should still render in a useful way.
